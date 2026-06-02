@@ -1,13 +1,6 @@
 import numpy as np
 from typing import Tuple
-from .adjacent_lanes import AdjacentLane
-
-TURN_SPEED = 0.18
-TURN_BIAS = 0.05
- 
-MIN_TURN_FRAMES = 30
-MIN_POINTS = 2
- 
+from tasks.project.packages.adjacent_lanes import AdjacentLane 
  
 class TurnAgent:
     def __init__(self,

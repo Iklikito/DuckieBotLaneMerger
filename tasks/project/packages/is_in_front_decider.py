@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 
-def is_in_front(frame) -> bool:
+def is_in_front(frame: np.ndarray) -> bool:
     h = frame.shape[0]
     roi = frame[int(h * 0.75):, :]
 

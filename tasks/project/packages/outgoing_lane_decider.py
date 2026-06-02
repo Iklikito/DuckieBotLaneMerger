@@ -1,6 +1,8 @@
-from .adjacent_lanes import AdjacentLane
+import numpy as np
+from tasks.project.packages.adjacent_lanes import AdjacentLane
+from tasks.project.packages.ObjectDetector import ObjectDetector
 
-def decide_outgoing_lane(frame, object_detector) -> AdjacentLane:
+def decide_outgoing_lane(frame: np.ndarray, object_detector: ObjectDetector) -> AdjacentLane:
     detected_objects = object_detector.detect(frame)
     duck_counter = 0
 

@@ -1,6 +1,9 @@
-from .adjacent_lanes import AdjacentLane
+import numpy as np
+from typing import List
+from tasks.project.packages.adjacent_lanes import AdjacentLane
+from tasks.project.packages.ObjectDetector import Detection
 
-def isEmptyLaneNorth(frame, detected_objects) -> bool:
+def isEmptyLaneNorth(frame: np.ndarray, detected_objects: List[Detection]) -> bool:
     for detected_object in detected_objects:
         bbox, score, cls_id = detected_object
         xmin, ymin, xmax, ymax = bbox
@@ -11,7 +14,7 @@ def isEmptyLaneNorth(frame, detected_objects) -> bool:
         
     return True
     
-def isEmptyLaneEast(frame, detected_objects) -> bool:
+def isEmptyLaneEast(frame: np.ndarray, detected_objects: List[Detection]) -> bool:
     for detected_object in detected_objects:
         bbox, score, cls_id = detected_object
         xmin, ymin, xmax, ymax = bbox
@@ -22,7 +25,7 @@ def isEmptyLaneEast(frame, detected_objects) -> bool:
         
     return True
 
-def areEmptyLanesUntil(outgoing_lane: AdjacentLane, frame, detected_objects) -> bool:
+def areEmptyLanesUntil(outgoing_lane: AdjacentLane, frame: np.ndarray, detected_objects: List[Detection]) -> bool:
     if detected_objects is None:
         return False
     
