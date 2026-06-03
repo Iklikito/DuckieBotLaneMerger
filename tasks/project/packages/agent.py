@@ -31,16 +31,17 @@ def main(camera, wheels, leds, stop_event):
                     bot_state = get_next_state_and_set_leds(bot_state, leds)
                     outgoing_lane = decide_outgoing_lane(frame, object_detector)
                 else:
-                    convoy(frame, wheels, leds)
+                    pass
+                    #convoy(frame, wheels, leds)
 
             elif bot_state == BotState.waiting:
                 detected_objects = object_detector.detect(frame)
-                can_go = areEmptyLanesUntil(outgoing_lane, frame, detected_objects)
+                can_merge = areEmptyLanesUntil(outgoing_lane, frame, detected_objects)
 
-                if can_go:
+                if can_merge:
                     time.sleep(0.5)
-                    can_go = areEmptyLanesUntil(outgoing_lane, frame, detected_objects)
-                    if can_go:
+                    can_merge = areEmptyLanesUntil(outgoing_lane, frame, detected_objects)
+                    if can_merge:
                         bot_state = get_next_state_and_set_leds(bot_state, leds)
                         turn_agent = TurnAgent(outgoing_lane)
 
