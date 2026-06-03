@@ -1,0 +1,106 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/tiles/tile_straight.tscn" id="1_gmrgy"]
+[ext_resource type="PackedScene" path="res://scenes/tiles/tile_cross.tscn" id="2_1nyh4"]
+[ext_resource type="PackedScene" path="res://scenes/robot/duckie_bot.tscn" id="3_fqpcb"]
+[ext_resource type="Script" path="res://scripts/Moveee.gd" id="4_e4as7"]
+[ext_resource type="PackedScene" path="res://scenes/robot/duckie_bot_npc.tscn" id="5_t1kbc"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_7q0ur"]
+size = Vector3(28.8, 0.1, 28.8)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_gwl3y"]
+cull_mode = 2
+shading_mode = 0
+albedo_color = Color(0.14, 0.22, 0.1, 1)
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_munlk"]
+size = Vector2(28.8, 28.8)
+
+[node name="my_map" type="Node3D" unique_id=1309125043]
+
+[node name="Tiles" type="Node3D" parent="." unique_id=2134363623]
+
+[node name="Tile_7_6" type="Node3D" parent="Tiles" unique_id=1185004577 instance=ExtResource("1_gmrgy")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.5, 0.091, 3.9)
+
+[node name="Tile_7_5" type="Node3D" parent="Tiles" unique_id=2015853873 instance=ExtResource("1_gmrgy")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.5, 0.091, 3.3)
+
+[node name="Tile_7_7" type="Node3D" parent="Tiles" unique_id=339342304 instance=ExtResource("1_gmrgy")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.5, 0.091, 4.5)
+
+[node name="Tile_7_8" type="Node3D" parent="Tiles" unique_id=1313925425 instance=ExtResource("1_gmrgy")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.5, 0.091, 5.1)
+
+[node name="Tile_7_4" type="Node3D" parent="Tiles" unique_id=1642203562 instance=ExtResource("2_1nyh4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.5, 0.091, 2.7)
+
+[node name="Tile_6_4" type="Node3D" parent="Tiles" unique_id=1485988960 instance=ExtResource("1_gmrgy")]
+transform = Transform3D(1.1924881e-08, 0, -1, 0, 1, 0, 1, 0, 1.1924881e-08, 3.9, 0.091, 2.7)
+
+[node name="Tile_5_4" type="Node3D" parent="Tiles" unique_id=1635579311 instance=ExtResource("1_gmrgy")]
+transform = Transform3D(1.1924881e-08, 0, -1, 0, 1, 0, 1, 0, 1.1924881e-08, 3.3, 0.091, 2.7)
+
+[node name="Tile_4_4" type="Node3D" parent="Tiles" unique_id=1970166756 instance=ExtResource("1_gmrgy")]
+transform = Transform3D(1.1924881e-08, 0, -1, 0, 1, 0, 1, 0, 1.1924881e-08, 2.7, 0.091, 2.7)
+
+[node name="Tile_8_4" type="Node3D" parent="Tiles" unique_id=876986977 instance=ExtResource("1_gmrgy")]
+transform = Transform3D(1.1924881e-08, 0, -1, 0, 1, 0, 1, 0, 1.1924881e-08, 5.1, 0.091, 2.7)
+
+[node name="Tile_9_4" type="Node3D" parent="Tiles" unique_id=915770324 instance=ExtResource("1_gmrgy")]
+transform = Transform3D(1.1924881e-08, 0, -1, 0, 1, 0, 1, 0, 1.1924881e-08, 5.7, 0.091, 2.7)
+
+[node name="Tile_10_4" type="Node3D" parent="Tiles" unique_id=536532384 instance=ExtResource("1_gmrgy")]
+transform = Transform3D(1.1924881e-08, 0, -1, 0, 1, 0, 1, 0, 1.1924881e-08, 6.3, 0.091, 2.7)
+
+[node name="Tile_3_4" type="Node3D" parent="Tiles" unique_id=836127595 instance=ExtResource("1_gmrgy")]
+transform = Transform3D(1.1924881e-08, 0, -1, 0, 1, 0, 1, 0, 1.1924881e-08, 2.1, 0.091, 2.7)
+
+[node name="Tile_7_3" type="Node3D" parent="Tiles" unique_id=594122908 instance=ExtResource("1_gmrgy")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.5, 0.091, 2.1)
+
+[node name="Tile_7_2" type="Node3D" parent="Tiles" unique_id=1699242274 instance=ExtResource("1_gmrgy")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.5, 0.091, 1.5)
+
+[node name="Tile_7_1" type="Node3D" parent="Tiles" unique_id=1121455177 instance=ExtResource("1_gmrgy")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.5, 0.091, 0.9)
+
+[node name="Tile_7_0" type="Node3D" parent="Tiles" unique_id=1065215221 instance=ExtResource("1_gmrgy")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.5, 0.091, 0.3)
+
+[node name="Ducks" type="Node3D" parent="." unique_id=1936163990]
+
+[node name="Signs" type="Node3D" parent="." unique_id=105311740]
+
+[node name="DuckieBot" type="CharacterBody3D" parent="." unique_id=865415826 instance=ExtResource("3_fqpcb")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.632, 0.155, 3.3)
+script = ExtResource("4_e4as7")
+
+[node name="TopView" type="Camera3D" parent="DuckieBot" unique_id=1341636103]
+transform = Transform3D(1, 0, 0, 0, 0.34202015, 0.9396926, 0, -0.9396926, 0.34202015, 0, 1, 0.8)
+current = true
+
+[node name="DuckieBot_NPC" type="CharacterBody3D" parent="." unique_id=1394976461 instance=ExtResource("5_t1kbc")]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 4.368, 0.155, 2.1)
+
+[node name="Sun" type="DirectionalLight3D" parent="." unique_id=1364011856]
+transform = Transform3D(0.8660254, -0.4829629, 0.12940954, 0, 0.25881907, 0.9659258, -0.5, -0.83651626, 0.22414389, 4.8, 20, 4.8)
+light_energy = 1.6
+shadow_enabled = true
+
+[node name="FillLight" type="DirectionalLight3D" parent="." unique_id=1660289244]
+transform = Transform3D(-0.8660254, 0.24999999, -0.43301266, 0, 0.8660254, 0.5, 0.49999997, 0.4330127, -0.75, 4.8, 20, 4.8)
+light_color = Color(0.85, 0.92, 1, 1)
+light_energy = 0.35
+
+[node name="Ground" type="StaticBody3D" parent="." unique_id=1851399999]
+
+[node name="@CollisionShape3D@132" type="CollisionShape3D" parent="Ground" unique_id=871884680]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.8, 0.041, 4.8)
+shape = SubResource("BoxShape3D_7q0ur")
+
+[node name="GroundMesh" type="MeshInstance3D" parent="." unique_id=455270818]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.8, 0.084, 4.8)
+material_override = SubResource("StandardMaterial3D_gwl3y")
+mesh = SubResource("PlaneMesh_munlk")
