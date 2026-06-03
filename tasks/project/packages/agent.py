@@ -18,6 +18,7 @@ def main(camera, wheels, leds, stop_event):
     outgoing_lane = None
     object_detector = ObjectDetector(config_path="config/object_detection_config.yaml", model_path="tasks/object_detection/models/best.onnx")
     lane_servoing_agent = LaneServoingAgent(config_path="config/lane_servoing_config.yaml")
+    print("Object detector and lane follower initialized.")
 
     try:
         while not stop_event.is_set():
@@ -30,6 +31,7 @@ def main(camera, wheels, leds, stop_event):
                 if is_in_front(frame):
                     bot_state = get_next_state_and_set_leds(bot_state, leds)
                     outgoing_lane = decide_outgoing_lane(frame, object_detector)
+                    wheels.set_wheels_speed(0.0, 0.0)
                 else:
                     pass
                     #convoy(frame, wheels, leds)

@@ -5,7 +5,7 @@ import cv2
 from collections import deque
 from typing import Tuple, List
 
-from tasks.project.packages import visual_servoing_activity as student
+from tasks.project.packages.detect_lane_markings import detect_lane_markings
 
 _CONFIG_FILE = os.path.normpath(os.path.join(
     os.path.dirname(__file__), '..', '..', '..', 'config', 'lane_servoing_config.yaml'
@@ -153,7 +153,7 @@ class LaneServoingAgent:
         bgr = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
         try:
-            mask_left, mask_right = student.detect_lane_markings(bgr)
+            mask_left, mask_right = detect_lane_markings(bgr)
         except Exception as e:
             print(f"[Agent] detect_lane_markings error: {e}")
             return 0.0, 0.0

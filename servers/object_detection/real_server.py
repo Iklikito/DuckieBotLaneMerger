@@ -25,7 +25,6 @@ from duckiebot.wheel_driver.wheels_driver_abs import WheelPWMConfiguration
 from launcher.ports import find_available_port
 from servers.common import make_frame_generator, shutdown_cleanup, suppress_http_logs
 
-
 app        = Flask(__name__)
 lane_agent = None
 det_agent  = None
