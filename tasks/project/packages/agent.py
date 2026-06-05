@@ -22,6 +22,8 @@ def main(camera, wheels, leds, stop_event):
     while not object_detector.model_loaded:
         time.sleep(1)
         print("Waiting for model to load...")
+        print(f"object_detector.trt_building: {object_detector.trt_building}")
+        print(f"object_detector.load_error: {object_detector.load_error}")
     print("Model loaded!")
     lane_servoing_agent = LaneServoingAgent(config_path="config/lane_servoing_config.yaml")
     print("Object detector and lane follower initialized.")
@@ -31,6 +33,7 @@ def main(camera, wheels, leds, stop_event):
 
     try:
         while not stop_event.is_set():
+
             ok, frame = camera.read()
             if not ok:
                 time.sleep(0.05)
@@ -44,6 +47,7 @@ def main(camera, wheels, leds, stop_event):
                     wheels.set_wheels_speed(0.0, 0.0)
                 else:
                     pass
+                    wheels.set_wheels_speed(0.1,0.1)
                     #convoy(frame, wheels, leds)
 
             elif bot_state == BotState.waiting:
