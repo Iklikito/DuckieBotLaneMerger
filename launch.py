@@ -337,6 +337,9 @@ def package_task(task_name):
 
     task_models_dir = os.path.join(PROJECT_ROOT, 'tasks', task_name, 'models')
     task_server_dir = os.path.join(PROJECT_ROOT, 'servers', task_name)
+    servers_templates_dir = os.path.join(PROJECT_ROOT, 'servers', 'templates')
+    servers_common_file   = os.path.join(PROJECT_ROOT, 'servers', 'common.py')
+    servers_init_file     = os.path.join(PROJECT_ROOT, 'servers', '__init__.py')
 
     buf = io.BytesIO()
     with tarfile.open(fileobj=buf, mode='w:gz') as tar:
@@ -351,6 +354,14 @@ def package_task(task_name):
         if os.path.exists(task_server_dir):
             print(f"   Adding server: servers/{task_name}/")
             tar.add(task_server_dir, arcname=f'servers/{task_name}', filter=no_pycache)
+        if os.path.exists(servers_templates_dir):
+            print(f"   Adding templates: servers/templates/")
+            tar.add(servers_templates_dir, arcname='servers/templates', filter=no_pycache)
+        if os.path.exists(servers_common_file):
+            print(f"   Adding common: servers/common.py")
+            tar.add(servers_common_file, arcname='servers/common.py', filter=no_pycache)
+        if os.path.exists(servers_init_file):
+            tar.add(servers_init_file, arcname='servers/__init__.py', filter=no_pycache)
 
     buf.seek(0)
     print("Package created!")
