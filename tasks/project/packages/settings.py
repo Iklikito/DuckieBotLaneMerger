@@ -1,5 +1,6 @@
 from tasks.project.packages.bot_state import BotState
 from tasks.project.packages.adjacent_lanes import AdjacentLane
+from tasks.project.packages.bot_name import BotName
 
 LED_RED    = (1, 0, 0)
 LED_GREEN  = (0, 1, 0)
@@ -20,3 +21,5 @@ debugging = True
 
 has_to_wait_predetermined = False # For testing. False if the bot doesn't need to yield
 outgoing_lane_predetermined = AdjacentLane.west # For testing. None if the bot need to determine it
+
+ROBOT_ID = BotName.megatron

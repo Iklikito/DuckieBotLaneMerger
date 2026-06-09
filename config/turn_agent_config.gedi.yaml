@@ -1,0 +1,13 @@
+reentry_delay_s: 1.5
+
+east:
+  turn_speed: 0.2
+  turn_bias: 0.125
+
+north:
+  turn_speed: 0.18
+  turn_bias: 0.03
+
+west:
+  turn_speed: 0.2
+  turn_bias: 0.12

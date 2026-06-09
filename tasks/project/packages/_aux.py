@@ -1,5 +1,6 @@
 from tasks.project.packages.settings import state_to_led_color, debugging
 from tasks.project.packages.bot_state import BotState
+from tasks.project.packages.bot_name import BotName
 
 state_to_state_entrance_console_message = {
     BotState.convoying : "Bot started. Convoying...",
@@ -60,3 +61,15 @@ def get_next_state_and_set_leds(state: BotState, leds) -> BotState:
         print(console_message)
     
     return next_state
+
+def get_turn_agent_config_path(bot_name):
+    if bot_name == BotName.simulation:
+        return 'config/turn_agent_config.yaml'
+    elif bot_name == BotName.gedi:
+        return 'config/turn_agent_config.gedi.yaml'
+    elif bot_name == BotName.megatron:
+        return 'config/turn_agent_config.megatron.yaml'
+    elif bot_name == BotName.bart:
+        return 'config/turn_agent_config.bart.yaml'
+    else:
+        raise ValueError(f"Function get_turn_agent_config_path cannot handle bot name {bot_name}")
