@@ -15,13 +15,13 @@ class TurnAgent:
         with open(get_turn_agent_config_path(ROBOT_ID)) as f:
             cfg = yaml.safe_load(f)
 
-        self._reentry_delay_s = float(cfg.get('reentry_delay_s', 1.5))
         self._turn_start_time = time.time()
         self._frame = 0
 
         direction_key = outgoing_lane.name
         dir_cfg = cfg.get(direction_key, {})
 
+        self._reentry_delay_s = float(dir_cfg.get('reentry_delay_s', 1.5))
         self._turn_speed = float(dir_cfg.get('turn_speed', 0.2))
         self._turn_bias = float(dir_cfg.get('turn_bias', 0.1))
         self.turn = dir_cfg.get('turn', 'left')

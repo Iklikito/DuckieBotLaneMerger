@@ -27,6 +27,38 @@ _CONTENT = '''
                 </div>
             </div>
 
+            <!-- Manual drive card -->
+            <div class="card">
+                <div class="card-header">
+                    Manual Drive
+                    <span id="manualDot" style="width:8px;height:8px;border-radius:50%;
+                        background:var(--text-muted);display:inline-block;"></span>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:10px;">
+                    <button class="button" id="manualToggleBtn" onclick="toggleManual()">Enable</button>
+                    <div id="manualControls" style="display:none;flex-direction:column;gap:8px;">
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <span class="hsv-label">Left</span>
+                            <input type="range" class="slider" id="manualLeft"
+                                   min="-1" max="1" step="0.05" value="0" style="flex:1;">
+                            <input type="number" class="input-box" id="manualLeft-input"
+                                   min="-1" max="1" step="0.05" value="0" style="width:52px;">
+                        </div>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <span class="hsv-label">Right</span>
+                            <input type="range" class="slider" id="manualRight"
+                                   min="-1" max="1" step="0.05" value="0" style="flex:1;">
+                            <input type="number" class="input-box" id="manualRight-input"
+                                   min="-1" max="1" step="0.05" value="0" style="width:52px;">
+                        </div>
+                        <button class="button" onclick="sendManual()">Send</button>
+                        <button class="button" onclick="stopWheels()"
+                                style="background:var(--accent-red);">Stop</button>
+                    </div>
+                    <div id="manualStatus" class="status"></div>
+                </div>
+            </div>
+
             <!-- HSV bounds card (red detection) -->
             <div class="card">
                 <div class="card-header">Red HSV Bounds</div>
@@ -159,6 +191,7 @@ _EXTRA_CSS = '''
 .state-waiting   { background: rgba(210,153,34,.2); color: var(--accent-orange); }
 .state-turning   { background: rgba(163,113,247,.2); color: var(--accent-purple); }
 .state-finishing { background: rgba(63,185,80,.2);  color: var(--accent-green); }
+.state-manual    { background: rgba(255,100,0,.2);  color: var(--accent-orange); }
 .state-unknown   { background: rgba(110,118,129,.2); color: var(--text-muted); }
 
 /* HSV slider rows */
@@ -311,6 +344,44 @@ function loadLaneHsvBounds() {
             });
         });
 }
+
+/* ── Manual drive ── */
+let manualEnabled = false;
+
+function toggleManual() {
+    manualEnabled = !manualEnabled;
+    document.getElementById('manualToggleBtn').textContent = manualEnabled ? 'Disable' : 'Enable';
+    document.getElementById('manualToggleBtn').style.background = manualEnabled ? 'var(--accent-red)' : '';
+    document.getElementById('manualControls').style.display = manualEnabled ? 'flex' : 'none';
+    document.getElementById('manualDot').style.background = manualEnabled ? 'var(--accent-green)' : 'var(--text-muted)';
+
+    if (!manualEnabled) {
+        postJSON('/manual', {})
+            .catch(e => showStatus('manualStatus', 'Error: ' + e, 'error'));
+    }
+}
+
+function sendManual() {
+    if (!manualEnabled) return;
+    const left  = parseFloat(document.getElementById('manualLeft').value);
+    const right = parseFloat(document.getElementById('manualRight').value);
+    postJSON('/manual', {left, right})
+        .then(() => showStatus('manualStatus', `L=${left.toFixed(2)} R=${right.toFixed(2)}`, 'success'))
+        .catch(e => showStatus('manualStatus', 'Error: ' + e, 'error'));
+}
+
+function stopWheels() {
+    document.getElementById('manualLeft').value        = 0;
+    document.getElementById('manualLeft-input').value  = 0;
+    document.getElementById('manualRight').value       = 0;
+    document.getElementById('manualRight-input').value = 0;
+    postJSON('/manual', {left: 0, right: 0})
+        .then(() => showStatus('manualStatus', 'Stopped', 'success'))
+        .catch(e => showStatus('manualStatus', 'Error: ' + e, 'error'));
+}
+
+syncSliderInput('manualLeft',  () => {});
+syncSliderInput('manualRight', () => {});
 
 /* ── Send command ── */
 function sendCommand() {

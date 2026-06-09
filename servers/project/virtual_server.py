@@ -215,6 +215,17 @@ def hsv_lane_post():
     return jsonify({'status': 'ok', **lane_markings_module.get_hsv_bounds()})
 
 
+@app.route('/manual', methods=['POST'])
+def manual():
+    data = request.get_json(force=True) or {}
+    # data is either {'left': float, 'right': float} to drive, or {} to disengage
+    if 'left' in data and 'right' in data:
+        _cmd_queue.put({'key': 'manual_drive', 'value': {'left': float(data['left']), 'right': float(data['right'])}})
+    else:
+        _cmd_queue.put({'key': 'manual_drive', 'value': None})
+    return jsonify({'status': 'ok'})
+
+
 @app.route('/command', methods=['POST'])
 def command():
     data = request.json or {}

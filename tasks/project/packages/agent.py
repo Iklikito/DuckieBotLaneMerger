@@ -44,6 +44,7 @@ def main(camera, wheels, leds, stop_event, debug=None, debug_lock=None, cmd_queu
     bot_state = get_next_state_and_set_leds(state=None, leds=leds)
     printed_lr = False  # remove later
     waiting_for_red_line_to_disappear = False
+    manual_drive = {'left': 0.0, 'right': 0.0}
 
     try:
         while not stop_event.is_set():
@@ -52,15 +53,33 @@ def main(camera, wheels, leds, stop_event, debug=None, debug_lock=None, cmd_queu
                 time.sleep(0.05)
                 continue
 
-            # Drain any commands sent from the web UI
+            # Drain any commands sent from the web UI# Drain any commands sent from the web UI
             if cmd_queue is not None:
                 while not cmd_queue.empty():
                     cmd = cmd_queue.get_nowait()
-                    if cmd.get('key') == 'remove_objects':
-                        name_filter = str(cmd.get('value', '')).lower()  # ← lowercase
+                    key = cmd.get('key')
+                    if key == 'remove_objects':
+                        name_filter = str(cmd.get('value', '')).lower()
                         if name_filter and hasattr(wheels, 'remove_objects'):
                             wheels.remove_objects(name_filter)
                             print(f'[Agent] remove_objects: {name_filter}')
+                    elif key == 'manual_drive':
+                        manual_drive = cmd.get('value')  # {'left': float, 'right': float} or None
+
+            # Manual drive overrides all FSM logic
+            if manual_drive is not None:
+                wheels.set_wheels_speed(manual_drive['left'], manual_drive['right'])
+                _update_debug(
+                    state='manual',
+                    frame=frame.copy(),
+                    red_mask=red_mask,
+                    yellow_mask=yellow_mask,
+                    white_mask=white_mask,
+                    detections=[],
+                    distance_measure=None,
+                )
+                time.sleep(0.01)
+                continue
 
             # Always compute all masks fresh for the debug view
             red_mask = get_red_mask(frame)
