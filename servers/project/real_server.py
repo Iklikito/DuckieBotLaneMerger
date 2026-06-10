@@ -183,11 +183,11 @@ def hsv_lane_post():
 @app.route('/manual', methods=['POST'])
 def manual():
     data = request.get_json(force=True) or {}
-    # data is either {'left': float, 'right': float} to drive, or {} to disengage
     if 'left' in data and 'right' in data:
         _cmd_queue.put({'key': 'manual_drive', 'value': {'left': float(data['left']), 'right': float(data['right'])}})
     else:
-        _cmd_queue.put({'key': 'manual_drive', 'value': None})
+        reset = bool(data.get('reset_to_convoy', False))
+        _cmd_queue.put({'key': 'manual_drive', 'value': None, 'reset_to_convoy': reset})
     return jsonify({'status': 'ok'})
 
 

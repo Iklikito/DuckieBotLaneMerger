@@ -36,24 +36,45 @@ _CONTENT = '''
                 </div>
                 <div style="display:flex;flex-direction:column;gap:10px;">
                     <button class="button" id="manualToggleBtn" onclick="toggleManual()">Enable</button>
-                    <div id="manualControls" style="display:none;flex-direction:column;gap:8px;">
-                        <div style="display:flex;align-items:center;gap:8px;">
-                            <span class="hsv-label">Left</span>
-                            <input type="range" class="slider" id="manualLeft"
-                                   min="-1" max="1" step="0.05" value="0" style="flex:1;">
-                            <input type="number" class="input-box" id="manualLeft-input"
-                                   min="-1" max="1" step="0.05" value="0" style="width:52px;">
+                    <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-muted);cursor:pointer;">
+                        <input type="checkbox" id="resetToConvoyChk" style="cursor:pointer;">
+                        Reset to convoy on exit
+                    </label>
+                    <div id="manualControls" style="display:none;flex-direction:column;gap:10px;">
+
+                        <!-- Arrow key pad -->
+                        <div style="display:grid;grid-template-columns:repeat(3,44px);
+                                    grid-template-rows:repeat(3,44px);gap:4px;
+                                    justify-content:center;">
+                            <div></div>
+                            <button class="arrow-btn" id="btn-up"    data-dir="up">&#x25B2;</button>
+                            <div></div>
+                            <button class="arrow-btn" id="btn-left"  data-dir="left">&#x25C4;</button>
+                            <button class="arrow-btn" id="btn-stop"  data-dir="stop">&#x25A0;</button>
+                            <button class="arrow-btn" id="btn-right" data-dir="right">&#x25BA;</button>
+                            <div></div>
+                            <button class="arrow-btn" id="btn-down"  data-dir="down">&#x25BC;</button>
+                            <div></div>
                         </div>
+
+                        <!-- Speed slider -->
                         <div style="display:flex;align-items:center;gap:8px;">
-                            <span class="hsv-label">Right</span>
-                            <input type="range" class="slider" id="manualRight"
-                                   min="-1" max="1" step="0.05" value="0" style="flex:1;">
-                            <input type="number" class="input-box" id="manualRight-input"
-                                   min="-1" max="1" step="0.05" value="0" style="width:52px;">
+                            <span style="font-size:11px;color:var(--text-muted);
+                                         text-transform:uppercase;width:40px;flex-shrink:0;">Speed</span>
+                            <input type="range" class="slider" id="driveSpeed"
+                                   min="0.1" max="1" step="0.05" value="0.4" style="flex:1;">
+                            <span id="driveSpeedLabel"
+                                  style="width:34px;text-align:right;font-size:12px;
+                                         font-family:monospace;color:var(--text-primary);">0.40</span>
                         </div>
-                        <button class="button" onclick="sendManual()">Send</button>
-                        <button class="button" onclick="stopWheels()"
-                                style="background:var(--accent-red);">Stop</button>
+
+                        <!-- Live wheel readout -->
+                        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);">
+                            <span>L: <span id="readoutLeft"  style="color:var(--text-primary);font-family:monospace;">0.00</span></span>
+                            <span style="font-size:10px;">Arrow keys work when enabled</span>
+                            <span>R: <span id="readoutRight" style="color:var(--text-primary);font-family:monospace;">0.00</span></span>
+                        </div>
+
                     </div>
                     <div id="manualStatus" class="status"></div>
                 </div>
@@ -193,6 +214,28 @@ _EXTRA_CSS = '''
 .state-finishing { background: rgba(63,185,80,.2);  color: var(--accent-green); }
 .state-manual    { background: rgba(255,100,0,.2);  color: var(--accent-orange); }
 .state-unknown   { background: rgba(110,118,129,.2); color: var(--text-muted); }
+
+/* Arrow drive buttons */
+.arrow-btn {
+    width: 44px;
+    height: 44px;
+    background: var(--bg-sidebar);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.1s, border-color 0.1s;
+    user-select: none;
+}
+.arrow-btn:hover        { background: var(--bg-dark); border-color: var(--accent-blue); }
+.arrow-btn.arrow-active { background: var(--accent-blue); border-color: var(--accent-blue); }
+#btn-stop               { background: var(--bg-sidebar); color: var(--accent-red); }
+#btn-stop:hover         { background: rgba(248,81,73,.15); border-color: var(--accent-red); }
+#btn-stop.arrow-active  { background: var(--accent-red); color: white; }
 
 /* HSV slider rows */
 .hsv-row, .lane-hsv-row {
@@ -348,6 +391,56 @@ function loadLaneHsvBounds() {
 /* ── Manual drive ── */
 let manualEnabled = false;
 
+// Maps direction name -> [left, right] wheel multipliers (applied to speed)
+const DIR_VECTORS = {
+    up:    [ 1,  1],
+    down:  [-1, -1],
+    left:  [-0.5,  0.5],
+    right: [ 0.5, -0.5],
+    stop:  [ 0,  0],
+};
+
+// Keys currently held down
+const _keysHeld = new Set();
+
+function _getSpeed() {
+    return parseFloat(document.getElementById('driveSpeed').value);
+}
+
+function _sendWheels(left, right) {
+    document.getElementById('readoutLeft').textContent  = left.toFixed(2);
+    document.getElementById('readoutRight').textContent = right.toFixed(2);
+    postJSON('/manual', {left, right}).catch(() => {});
+}
+
+function _driveDir(dir) {
+    if (!manualEnabled) return;
+    const speed = _getSpeed();
+    const [lm, rm] = DIR_VECTORS[dir] || [0, 0];
+    _sendWheels(lm * speed, rm * speed);
+    // Highlight the button briefly
+    const btn = document.getElementById('btn-' + dir);
+    if (btn) {
+        btn.classList.add('arrow-active');
+        setTimeout(() => btn.classList.remove('arrow-active'), 150);
+    }
+}
+
+function _applyHeldKeys() {
+    if (!manualEnabled) return;
+    // Priority: stop > up/down > left/right
+    if (_keysHeld.has('stop'))  { _sendWheels(0, 0); return; }
+    const speed = _getSpeed();
+    let l = 0, r = 0;
+    if (_keysHeld.has('up'))    { l += speed;  r += speed; }
+    if (_keysHeld.has('down'))  { l -= speed;  r -= speed; }
+    if (_keysHeld.has('left'))  { l -= speed * 0.5; r += speed * 0.5; }
+    if (_keysHeld.has('right')) { l += speed * 0.5; r -= speed * 0.5; }
+    l = Math.max(-1, Math.min(1, l));
+    r = Math.max(-1, Math.min(1, r));
+    _sendWheels(l, r);
+}
+
 function toggleManual() {
     manualEnabled = !manualEnabled;
     document.getElementById('manualToggleBtn').textContent = manualEnabled ? 'Disable' : 'Enable';
@@ -356,32 +449,59 @@ function toggleManual() {
     document.getElementById('manualDot').style.background = manualEnabled ? 'var(--accent-green)' : 'var(--text-muted)';
 
     if (!manualEnabled) {
-        postJSON('/manual', {})
-            .catch(e => showStatus('manualStatus', 'Error: ' + e, 'error'));
+        _keysHeld.clear();
+        document.getElementById('readoutLeft').textContent  = '0.00';
+        document.getElementById('readoutRight').textContent = '0.00';
+        const reset = document.getElementById('resetToConvoyChk').checked;
+        postJSON('/manual', { reset_to_convoy: reset }).catch(() => {});
     }
 }
 
-function sendManual() {
-    if (!manualEnabled) return;
-    const left  = parseFloat(document.getElementById('manualLeft').value);
-    const right = parseFloat(document.getElementById('manualRight').value);
-    postJSON('/manual', {left, right})
-        .then(() => showStatus('manualStatus', `L=${left.toFixed(2)} R=${right.toFixed(2)}`, 'success'))
-        .catch(e => showStatus('manualStatus', 'Error: ' + e, 'error'));
-}
+// Speed slider label sync
+document.getElementById('driveSpeed').addEventListener('input', function() {
+    document.getElementById('driveSpeedLabel').textContent = parseFloat(this.value).toFixed(2);
+    if (manualEnabled && _keysHeld.size > 0) _applyHeldKeys();
+});
 
-function stopWheels() {
-    document.getElementById('manualLeft').value        = 0;
-    document.getElementById('manualLeft-input').value  = 0;
-    document.getElementById('manualRight').value       = 0;
-    document.getElementById('manualRight-input').value = 0;
-    postJSON('/manual', {left: 0, right: 0})
-        .then(() => showStatus('manualStatus', 'Stopped', 'success'))
-        .catch(e => showStatus('manualStatus', 'Error: ' + e, 'error'));
-}
+// On-screen arrow buttons (click = single nudge)
+document.querySelectorAll('.arrow-btn').forEach(btn => {
+    btn.addEventListener('click', () => _driveDir(btn.dataset.dir));
+});
 
-syncSliderInput('manualLeft',  () => {});
-syncSliderInput('manualRight', () => {});
+// Keyboard: held-key driving
+const KEY_MAP = {
+    ArrowUp:    'up',
+    ArrowDown:  'down',
+    ArrowLeft:  'left',
+    ArrowRight: 'right',
+    ' ':        'stop',   // spacebar = emergency stop
+};
+
+document.addEventListener('keydown', e => {
+    const dir = KEY_MAP[e.key];
+    if (!dir || !manualEnabled) return;
+    e.preventDefault();
+    if (_keysHeld.has(dir)) return;   // already held, don't re-send
+    _keysHeld.add(dir);
+    const btnEl = document.getElementById('btn-' + dir);
+    if (btnEl) btnEl.classList.add('arrow-active');
+    _applyHeldKeys();
+});
+
+document.addEventListener('keyup', e => {
+    const dir = KEY_MAP[e.key];
+    if (!dir) return;
+    _keysHeld.delete(dir);
+    const btnEl = document.getElementById('btn-' + dir);
+    if (btnEl) btnEl.classList.remove('arrow-active');
+    if (manualEnabled) {
+        if (_keysHeld.size === 0) {
+            _sendWheels(0, 0);   // coast to stop when all keys released
+        } else {
+            _applyHeldKeys();
+        }
+    }
+});
 
 /* ── Send command ── */
 function sendCommand() {

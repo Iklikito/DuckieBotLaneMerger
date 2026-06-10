@@ -64,7 +64,17 @@ def main(camera, wheels, leds, stop_event, debug=None, debug_lock=None, cmd_queu
                             wheels.remove_objects(name_filter)
                             print(f'[Agent] remove_objects: {name_filter}')
                     elif key == 'manual_drive':
-                        manual_drive = cmd.get('value')  # {'left': float, 'right': float} or None
+                        manual_drive = cmd.get('value')
+                        if manual_drive is None and cmd.get('reset_to_convoy', False):
+                            bot_state = get_next_state_and_set_leds(state=None, leds=leds)
+                            waiting_for_red_line_to_disappear = False
+
+            # Always compute all masks fresh for the debug view
+            red_mask = get_red_mask(frame)
+            mask_left, mask_right = detect_lane_markings(frame)
+            yellow_mask = (mask_left  * 255).astype(np.uint8)
+            white_mask  = (mask_right * 255).astype(np.uint8)
+            detected_objects = []
 
             # Manual drive overrides all FSM logic
             if manual_drive is not None:
@@ -76,7 +86,6 @@ def main(camera, wheels, leds, stop_event, debug=None, debug_lock=None, cmd_queu
                     yellow_mask=yellow_mask,
                     white_mask=white_mask,
                     detections=[],
-                    distance_measure=None,
                 )
                 time.sleep(0.01)
                 continue
@@ -149,7 +158,6 @@ def main(camera, wheels, leds, stop_event, debug=None, debug_lock=None, cmd_queu
             else:
                 raise ValueError(f"Invalid bot state: {bot_state}")
 
-            # compute distance measure to leader (for tuning threshold)
             distance_measure = None
             try:
                 distance_measure = calculate_distance_measure_to_leader(frame)
