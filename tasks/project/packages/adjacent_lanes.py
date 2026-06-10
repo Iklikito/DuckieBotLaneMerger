@@ -65,5 +65,5 @@ def main():
     print(f"Lower HSV = [{h_min}, {s_min}, {v_min}]")
     print(f"Upper HSV = [{h_max}, {s_max}, {v_max}]")
 
-
-main()
+if __name__ == "__main__":
+    main()

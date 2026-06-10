@@ -5,9 +5,9 @@ east:
   reentry_delay_s: 0
 
 north:
-  turn: left
+  turn: straight
   turn_speed: 0.18
-  turn_bias: 0.03
+  turn_bias: 0.0
   reentry_delay_s: 0
 
 west:

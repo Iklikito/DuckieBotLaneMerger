@@ -30,7 +30,10 @@ class TurnAgent:
         print("Enterd turn_agent.step function frame")
         self._frame += 1
  
-        if self.turn == 'right':
+        if self.turn == 'straight':
+            left = self._turn_speed
+            right = self._turn_speed
+        elif self.turn == 'right':
             left  = float(np.clip(self._turn_speed + self._turn_bias, 0.0, 1.0))
             right = float(np.clip(self._turn_speed - self._turn_bias, 0.0, 1.0))
         else:

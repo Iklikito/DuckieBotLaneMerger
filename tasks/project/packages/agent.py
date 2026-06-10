@@ -44,7 +44,8 @@ def main(camera, wheels, leds, stop_event, debug=None, debug_lock=None, cmd_queu
     bot_state = get_next_state_and_set_leds(state=None, leds=leds)
     printed_lr = False  # remove later
     waiting_for_red_line_to_disappear = False
-    manual_drive = {'left': 0.0, 'right': 0.0}
+    manual_drive = None
+    turn_agent = None
 
     try:
         while not stop_event.is_set():
@@ -52,6 +53,13 @@ def main(camera, wheels, leds, stop_event, debug=None, debug_lock=None, cmd_queu
             if not ok:
                 time.sleep(0.05)
                 continue
+
+            # Always compute all masks fresh for the debug view
+            red_mask = get_red_mask(frame)
+            mask_left, mask_right = detect_lane_markings(frame)
+            yellow_mask = (mask_left  * 255).astype(np.uint8)
+            white_mask  = (mask_right * 255).astype(np.uint8)
+            detected_objects = []
 
             # Drain any commands sent from the web UI# Drain any commands sent from the web UI
             if cmd_queue is not None:
@@ -81,13 +89,6 @@ def main(camera, wheels, leds, stop_event, debug=None, debug_lock=None, cmd_queu
                 time.sleep(0.01)
                 continue
 
-            # Always compute all masks fresh for the debug view
-            red_mask = get_red_mask(frame)
-            mask_left, mask_right = detect_lane_markings(frame)
-            yellow_mask = (mask_left  * 255).astype(np.uint8)
-            white_mask  = (mask_right * 255).astype(np.uint8)
-            detected_objects = []
-
             if bot_state == BotState.convoying:
                 if is_in_front(frame):
                     waiting_for_red_line_to_disappear = True
@@ -96,7 +97,7 @@ def main(camera, wheels, leds, stop_event, debug=None, debug_lock=None, cmd_queu
                 if waiting_for_red_line_to_disappear and has_passed_red_line(frame):
                     bot_state = get_next_state_and_set_leds(bot_state, leds)
                     if outgoing_lane_predetermined is None:
-                        outoing_lane = decide_outgoing_lane(frame, object_detector)
+                        outgoing_lane = decide_outgoing_lane(frame, object_detector)
                     else:
                         outgoing_lane = outgoing_lane_predetermined
                     print(f"Outgoing lane: {outgoing_lane}")
@@ -137,14 +138,17 @@ def main(camera, wheels, leds, stop_event, debug=None, debug_lock=None, cmd_queu
 
                 wheels.set_wheels_speed(left, right)
 
-                if reentered:
-                    continue
-                    print("Reentry detected, finishing.")
+                turn_frames = getattr(turn_agent, "_frame", 0)
+                min_turn_frames = 85
+                turn_timed_out = turn_frames > 150
+                if (reentered and turn_frames >= min_turn_frames) or turn_timed_out:
+                    reason = "reentry detected" if reentered else "turn timeout"
+                    print(f"Finishing turn: {reason}.")
                     bot_state = get_next_state_and_set_leds(bot_state, leds)
                     wheels.set_wheels_speed(0.0, 0.0)
 
             elif bot_state == BotState.finishing:
-                pass
+                convoy(frame, wheels, leds)
 
             else:
                 raise ValueError(f"Invalid bot state: {bot_state}")
