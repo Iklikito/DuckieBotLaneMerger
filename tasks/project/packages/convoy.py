@@ -15,11 +15,14 @@ def calculate_distance_measure_to_leader(frame: np.ndarray) -> float:
     np.fill_diagonal(d, np.inf)
     return float(np.mean(np.min(d, axis=1)))
 
-def convoy(frame, wheels, leds):
+def convoy(frame, wheels, leds, lane_follower):
     distance = calculate_distance_measure_to_leader(frame)
     safe_to_move = distance is not None and distance < distance_measure_threshold
 
     if safe_to_move:
+        left = 0.0
+        right = 0.0
         wheels.set_wheels_speed(0.0, 0.0)
     else:
-        wheels.set_wheels_speed(0.2, 0.2)
+        left, right = lane_follower.compute_commands(frame)
+        wheels.set_wheels_speed(left, right)

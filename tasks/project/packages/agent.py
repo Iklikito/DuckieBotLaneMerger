@@ -104,7 +104,7 @@ def main(camera, wheels, leds, stop_event, debug=None, debug_lock=None, cmd_queu
                     print(f"Outgoing lane: {outgoing_lane}")
                     wheels.set_wheels_speed(0.0, 0.0)
                 else:
-                    convoy(frame, wheels, leds)
+                    convoy(frame, wheels, leds, lane_servoing_agent)
 
             elif bot_state == BotState.waiting:
                 if has_to_wait_predetermined:

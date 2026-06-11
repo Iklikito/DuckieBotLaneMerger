@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 
-_UPPER_THRESHOLD_RED = 1600
+_UPPER_THRESHOLD_RED = 5000
 _LOWER_THRESHOLD_RED = 200
 
 _hsv_bounds = {
@@ -35,7 +35,8 @@ def is_in_front(frame) -> bool:
     if frame is None:
         print("Frame is none.")
     else:
-        print(int(np.count_nonzero(bottom_quarter)) > _UPPER_THRESHOLD_RED)    
+        print(int(np.count_nonzero(bottom_quarter)) > _UPPER_THRESHOLD_RED) 
+    print(f"NUmber of red pixels: {int(np.count_nonzero(bottom_quarter))}")   
     return int(np.count_nonzero(bottom_quarter)) > _UPPER_THRESHOLD_RED
 
 def has_passed_red_line(frame) -> bool:
