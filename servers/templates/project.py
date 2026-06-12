@@ -448,7 +448,9 @@ function toggleManual() {
     document.getElementById('manualControls').style.display = manualEnabled ? 'flex' : 'none';
     document.getElementById('manualDot').style.background = manualEnabled ? 'var(--accent-green)' : 'var(--text-muted)';
 
-    if (!manualEnabled) {
+    if (manualEnabled) {
+        _sendWheels(0, 0);
+    } else {
         _keysHeld.clear();
         document.getElementById('readoutLeft').textContent  = '0.00';
         document.getElementById('readoutRight').textContent = '0.00';

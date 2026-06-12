@@ -48,10 +48,12 @@ def main(camera, wheels, leds, stop_event, debug=None, debug_lock=None, cmd_queu
 
     try:
         while not stop_event.is_set():
-            ok, frame = camera.read()
+            ok, frame_bgr = camera.read()
             if not ok:
                 time.sleep(0.05)
                 continue
+
+            frame_rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
 
             # Drain any commands sent from the web UI# Drain any commands sent from the web UI
             if cmd_queue is not None:
@@ -70,8 +72,8 @@ def main(camera, wheels, leds, stop_event, debug=None, debug_lock=None, cmd_queu
                             waiting_for_red_line_to_disappear = False
 
             # Always compute all masks fresh for the debug view
-            red_mask = get_red_mask(frame)
-            mask_left, mask_right = detect_lane_markings(frame)
+            red_mask = get_red_mask(frame_bgr)
+            mask_left, mask_right = detect_lane_markings(frame_bgr)
             yellow_mask = (mask_left  * 255).astype(np.uint8)
             white_mask  = (mask_right * 255).astype(np.uint8)
             detected_objects = []
@@ -81,7 +83,7 @@ def main(camera, wheels, leds, stop_event, debug=None, debug_lock=None, cmd_queu
                 wheels.set_wheels_speed(manual_drive['left'], manual_drive['right'])
                 _update_debug(
                     state='manual',
-                    frame=frame.copy(),
+                    frame=frame_bgr.copy(),
                     red_mask=red_mask,
                     yellow_mask=yellow_mask,
                     white_mask=white_mask,
@@ -91,25 +93,24 @@ def main(camera, wheels, leds, stop_event, debug=None, debug_lock=None, cmd_queu
                 continue
 
             if bot_state == BotState.convoying:
-                if is_in_front(frame):
+                if is_in_front(frame_bgr):
                     waiting_for_red_line_to_disappear = True
                     #set_all_leds(leds, (1, 0, 1))
 
-                if waiting_for_red_line_to_disappear and has_passed_red_line(frame):
+                if waiting_for_red_line_to_disappear and has_passed_red_line(frame_bgr):
                     bot_state = get_next_state_and_set_leds(bot_state, leds)
                     if outgoing_lane_predetermined is None:
-                        outgoing_lane = decide_outgoing_lane(frame, object_detector)
+                        outgoing_lane = decide_outgoing_lane(frame_bgr, object_detector)
                     else:
                         outgoing_lane = outgoing_lane_predetermined
                     print(f"Outgoing lane: {outgoing_lane}")
                     wheels.set_wheels_speed(0.0, 0.0)
                 else:
-                    left, right = convoy(frame, lane_servoing_agent)
+                    left, right = convoy(frame_rgb, lane_servoing_agent)
                     wheels.set_wheels_speed(left, right)
 
             elif bot_state == BotState.waiting:
                 if has_to_wait_predetermined:
-                    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                     detected_objects = object_detector.detect(frame_rgb) or []
                     print("Waiting...")
                     print(f"Detected objects: {detected_objects}")
@@ -133,7 +134,7 @@ def main(camera, wheels, leds, stop_event, debug=None, debug_lock=None, cmd_queu
 
             elif bot_state == BotState.turning:
                 print("Calling turn_agent.step")
-                left, right, reentered = turn_agent.step(frame)
+                left, right, reentered = turn_agent.step(frame_bgr)
                 if not printed_lr:
                     print(f"Turning: left={left}, right={right}")
                     printed_lr = True
@@ -146,7 +147,7 @@ def main(camera, wheels, leds, stop_event, debug=None, debug_lock=None, cmd_queu
                     wheels.set_wheels_speed(0.0, 0.0)
 
             elif bot_state == BotState.finishing:
-                left, right = lane_servoing_agent.compute_commands(frame)
+                left, right = lane_servoing_agent.compute_commands(frame_rgb)
                 wheels.set_wheels_speed(left, right)
 
             else:
@@ -154,13 +155,13 @@ def main(camera, wheels, leds, stop_event, debug=None, debug_lock=None, cmd_queu
 
             distance_measure = None
             try:
-                distance_measure = calculate_distance_measure_to_leader(frame)
+                distance_measure = calculate_distance_measure_to_leader(frame_bgr)
             except Exception:
                 distance_measure = None
 
             _update_debug(
                 state=bot_state.name,
-                frame=frame.copy(),
+                frame=frame_bgr.copy(),
                 red_mask=red_mask,
                 yellow_mask=yellow_mask,
                 white_mask=white_mask,

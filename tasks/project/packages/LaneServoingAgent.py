@@ -5,7 +5,8 @@ import cv2
 from collections import deque
 from typing import Tuple, List
 
-from tasks.project.packages.detect_lane_markings import detect_lane_markings
+#from tasks.project.packages.detect_lane_markings import detect_lane_markings
+from tasks.visual_lane_servoing.packages.visual_servoing_activity import detect_lane_markings
 
 _CONFIG_FILE = os.path.normpath(os.path.join(
     os.path.dirname(__file__), '..', '..', '..', 'config', 'lane_servoing_config.yaml'
