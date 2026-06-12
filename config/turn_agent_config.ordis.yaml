@@ -15,5 +15,5 @@ north:
 west:
   turn: left
   turn_speed: 0.4
-  turn_bias: 0.12
+  turn_bias: 0.15
   reentry_delay_s: 2.4

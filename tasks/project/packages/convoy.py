@@ -1,5 +1,6 @@
 import numpy as np
 import cv2
+from typing import Tuple
 
 distance_measure_threshold = 50
 
@@ -15,14 +16,9 @@ def calculate_distance_measure_to_leader(frame: np.ndarray) -> float:
     np.fill_diagonal(d, np.inf)
     return float(np.mean(np.min(d, axis=1)))
 
-def convoy(frame, wheels, leds, lane_follower):
+def safe_to_move(frame):
     distance = calculate_distance_measure_to_leader(frame)
-    safe_to_move = distance is not None and distance < distance_measure_threshold
+    return distance is None or distance >= distance_measure_threshold
 
-    if safe_to_move:
-        left = 0.0
-        right = 0.0
-        wheels.set_wheels_speed(0.0, 0.0)
-    else:
-        left, right = lane_follower.compute_commands(frame)
-        wheels.set_wheels_speed(left, right)
+def convoy(frame, lane_follower) -> Tuple[float, float]:
+    return lane_follower.compute_commands(frame) if safe_to_move(frame) else (0.0, 0.0)

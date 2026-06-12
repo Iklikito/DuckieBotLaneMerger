@@ -86,6 +86,8 @@ class LaneServoingAgent:
         self.steering_threshold  = cfg.get('steering_threshold',  0.2)
         self.curve_boost         = cfg.get('curve_boost',         1.3)
         self.detection_threshold = cfg.get('detection_threshold', 500)
+        # alpha: 0.5 = centered, >0.5 = biased toward yellow (left lane line)
+        self.alpha               = cfg.get('alpha',               0.5)
 
         self.frame_count        = 0
         self._prev_error        = 0.0
@@ -96,17 +98,20 @@ class LaneServoingAgent:
         self.last_debug_info    = self._empty_debug_info(480, 640)
 
     def _calculate_error(self, yellow_xs, white_xs, left_det, right_det, w):
+        offset = (self.alpha - 0.5) * 2 * self._lane_half_width
+
         if left_det and right_det and yellow_xs and white_xs:
             y_mean = float(np.mean(yellow_xs))
             w_mean = float(np.mean(white_xs))
             measured = (w_mean - y_mean) / 2.0
             if measured > 20:
                 self._lane_half_width = 0.9 * self._lane_half_width + 0.1 * measured
-            error = w / 2.0 - (y_mean + w_mean) / 2.0
+            # Weighted average: alpha toward yellow, (1-alpha) toward white
+            error = w / 2.0 - (self.alpha * y_mean + (1 - self.alpha) * w_mean)
         elif left_det and yellow_xs:
-            error = w / 2.0 - (float(np.mean(yellow_xs)) + self._lane_half_width)
+            error = w / 2.0 - (float(np.mean(yellow_xs)) + self._lane_half_width - offset)
         elif right_det and white_xs:
-            error = w / 2.0 - (float(np.mean(white_xs)) - self._lane_half_width)
+            error = w / 2.0 - (float(np.mean(white_xs)) - self._lane_half_width - offset)
         else:
             error = self._prev_error
 
@@ -123,7 +128,7 @@ class LaneServoingAgent:
             return 0.0, 0.0
 
         speed = self.curve_speed if is_curve else self.base_speed
-        
+
         if not both_visible:
             speed *= 0.8
 

@@ -35,11 +35,14 @@ def detect_lane_markings(image: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     mask_horizon[int(h * 0.2):, :] = 255
 
     # Ignore far-left region for white lane
+    mask_yellow_area = np.ones((h, w), dtype=np.uint8) * 255
+    mask_yellow_area[:, w//2:] = 0
     mask_white_area = np.ones((h, w), dtype=np.uint8) * 255
-    mask_white_area[:, : w//4] = 0
+    mask_white_area[:, :w//2] = 0
 
     # Apply region masks
     mask_yellow = cv2.bitwise_and(mask_yellow, mask_horizon)
+    mask_yellow = cv2.bitwise_and(mask_yellow, mask_yellow_area)
     mask_white = cv2.bitwise_and(mask_white, mask_horizon)
     mask_white = cv2.bitwise_and(mask_white, mask_white_area)
 

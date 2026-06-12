@@ -20,8 +20,8 @@ state_to_led_color = {
 debugging = True
 
 has_to_wait_predetermined = False # For testing. False if the bot doesn't need to yield
-outgoing_lane_predetermined = AdjacentLane.east # For testing. None if the bot need to determine it
+outgoing_lane_predetermined = AdjacentLane.west # For testing. None if the bot need to determine it
 
-ROBOT_ID = BotName.glados
+ROBOT_ID = BotName.ordis
 
 start_in_manual_drive = True
