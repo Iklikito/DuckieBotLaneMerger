@@ -21,4 +21,5 @@ def safe_to_move(frame):
     return distance is None or distance >= distance_measure_threshold
 
 def convoy(frame, lane_follower) -> Tuple[float, float]:
+    return (0.2, 0.2) if safe_to_move(frame) else (0.0, 0.0)
     return lane_follower.compute_commands(frame) if safe_to_move(frame) else (0.0, 0.0)

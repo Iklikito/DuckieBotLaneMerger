@@ -180,6 +180,23 @@ _CONTENT = '''
                     <div id="cmdStatus" class="status"></div>
                 </div>
             </div>
+            <!-- Outgoing lane card -->
+            <div class="card">
+                <div class="card-header">Outgoing Lane</div>
+                <div style="display:flex;flex-direction:column;gap:8px;">
+                    <select id="outgoingLaneSelect" style="padding:6px 8px;background:var(--bg-sidebar);
+                            border:1px solid var(--border-color);border-radius:4px;
+                            color:var(--text-primary);font-size:13px;">
+                        <option value="null">None (auto-detect)</option>
+                        <option value="north">North</option>
+                        <option value="east">East</option>
+                        <option value="south">South</option>
+                        <option value="west">West</option>
+                    </select>
+                    <button class="button" onclick="applyOutgoingLane()">Apply</button>
+                    <div id="outgoingLaneStatus" class="status"></div>
+                </div>
+            </div>
 
         </div>
     </div>
@@ -516,6 +533,24 @@ function sendCommand() {
         .catch(e => showStatus('cmdStatus', 'Error: ' + e, 'error'));
 }
 
+/* ── Outgoing lane ── */
+function loadOutgoingLane() {
+    fetch('/outgoing_lane')
+        .then(r => r.json())
+        .then(data => {
+            document.getElementById('outgoingLaneSelect').value =
+                data.outgoing_lane === null ? 'null' : data.outgoing_lane;
+        });
+}
+
+function applyOutgoingLane() {
+    const raw = document.getElementById('outgoingLaneSelect').value;
+    const val = raw === 'null' ? null : raw;
+    postJSON('/outgoing_lane', { outgoing_lane: val })
+        .then(() => showStatus('outgoingLaneStatus', 'Applied', 'success'))
+        .catch(e  => showStatus('outgoingLaneStatus', 'Error: ' + e, 'error'));
+}
+
 document.getElementById('cmdValue').addEventListener('keydown', e => {
     if (e.key === 'Enter') sendCommand();
 });
@@ -528,7 +563,8 @@ loadLaneHsvBounds();
 refreshStatus();
 refreshDebugFrame();
 setInterval(refreshStatus,     500);
-setInterval(refreshDebugFrame, 250);
+setInterval(refreshDebugFrame, 100);
+loadOutgoingLane();
 '''
 
 

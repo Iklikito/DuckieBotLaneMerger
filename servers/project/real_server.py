@@ -34,8 +34,9 @@ wheels     = None
 leds       = None
 stop_event = threading.Event()
 
-_debug      = {'state': 'unknown', 'frame': None, 'red_mask': None, 'detections': [],
-               'yellow_mask': None, 'white_mask': None}
+_debug = {'state': 'unknown', 'frame': None, 'red_mask': None, 'detections': [],
+          'yellow_mask': None, 'white_mask': None, 'lane_debug': None}
+
 _debug_lock = threading.Lock()
 _cmd_queue  = __import__('queue').Queue()
 
@@ -47,6 +48,27 @@ def _visualize(frame):
                     cv2.FONT_HERSHEY_SIMPLEX, 0.8, (80, 80, 80), 2)
         return blank
     return frame
+
+def _draw_lane_servoing_overlay(img: np.ndarray, yellow_xs, white_xs, slice_ys) -> np.ndarray:
+    H, W = img.shape[:2]
+    sx = W / 640.0
+    sy = H / 480.0
+
+    # Draw horizontal slice lines
+    for y in slice_ys:
+        cv2.line(img, (0, int(y * sy)), (W, int(y * sy)), (60, 60, 60), 1)
+
+    # Yellow points — matched per slice index
+    for i, x in enumerate(yellow_xs):
+        if i < len(slice_ys):
+            cv2.circle(img, (int(x * sx), int(slice_ys[i] * sy)), 5, (0, 200, 200), -1)
+
+    # White points
+    for i, x in enumerate(white_xs):
+        if i < len(slice_ys):
+            cv2.circle(img, (int(x * sx), int(slice_ys[i] * sy)), 5, (220, 220, 220), -1)
+
+    return img
 
 
 generate_frames = make_frame_generator(lambda: camera, _visualize, quality=70, rgb=False)
@@ -74,6 +96,7 @@ def _build_debug_grid() -> np.ndarray:
         yellow_mask = _debug['yellow_mask']
         white_mask  = _debug['white_mask']
         detections  = list(_debug['detections'])
+        lane_debug  = _debug.get('lane_debug')
 
     H, W = 240, 320
 
@@ -97,6 +120,13 @@ def _build_debug_grid() -> np.ndarray:
             cv2.putText(c0, f"{label} {score:.2f}", (x1 + 2, max(y1 - 4, 10)),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 255, 0), 1)
         c0 = _resize(c0)
+        if lane_debug:
+            c0 = _draw_lane_servoing_overlay(
+                c0,
+                lane_debug.get('yellow_xs', []),
+                lane_debug.get('white_xs',  []),
+                lane_debug.get('slice_ys',  []),
+            )
     else:
         c0 = _blank('detections')
 
@@ -132,6 +162,28 @@ def _build_debug_grid() -> np.ndarray:
         cv2.putText(img, lbl, (6, 16), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (255, 255, 255), 1)
 
     return np.vstack([np.hstack([c0, c1]), np.hstack([c2, c3])])
+
+
+def _make_debug_generator():
+    def generate():
+        while True:
+            try:
+                grid = _build_debug_grid()
+                _, jpeg = cv2.imencode('.jpg', grid, [cv2.IMWRITE_JPEG_QUALITY, 70])
+                yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n'
+                       + jpeg.tobytes() + b'\r\n')
+                time.sleep(0.033)
+            except Exception as e:
+                print(f'[DebugStream] Error: {e}')
+                time.sleep(0.05)
+    return generate
+
+generate_debug_frames = _make_debug_generator()
+
+@app.route('/debug_stream')
+def debug_stream():
+    return Response(generate_debug_frames(),
+                    mimetype='multipart/x-mixed-replace; boundary=frame')
 
 
 @app.route('/debug_frame')
@@ -204,6 +256,18 @@ def turn_config_post():
     with open(path, 'w') as f:
         _yaml.dump(cfg, f, default_flow_style=False)
     return jsonify({'status': 'ok', **cfg})
+
+
+@app.route('/outgoing_lane', methods=['GET'])
+def outgoing_lane_get():
+    return jsonify({'outgoing_lane': agent_module.get_outgoing_lane()})
+
+@app.route('/outgoing_lane', methods=['POST'])
+def outgoing_lane_post():
+    data = request.get_json(force=True) or {}
+    val  = data.get('outgoing_lane')   # 'north'/'east'/'south'/'west' or null
+    agent_module.set_outgoing_lane(val)
+    return jsonify({'status': 'ok'})
 
 
 @app.route('/manual', methods=['POST'])

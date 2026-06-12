@@ -15,6 +15,19 @@ from tasks.project.packages._aux import get_next_state_and_set_leds, set_all_led
 from tasks.project.packages.LaneServoingAgent import LaneServoingAgent
 from tasks.project.packages.settings import has_to_wait_predetermined, outgoing_lane_predetermined, start_in_manual_drive
 
+# Module-level outgoing lane override — readable/writable by real_server via get/set
+_outgoing_lane_override = outgoing_lane_predetermined
+
+
+def get_outgoing_lane():
+    v = _outgoing_lane_override
+    return v.name if v is not None else None
+
+
+def set_outgoing_lane(val):
+    global _outgoing_lane_override
+    _outgoing_lane_override = AdjacentLane[val] if val is not None else None
+
 
 def main(camera, wheels, leds, stop_event, debug=None, debug_lock=None, cmd_queue=None):
     print('[ProjectAgent] started main loop')
@@ -24,11 +37,11 @@ def main(camera, wheels, leds, stop_event, debug=None, debug_lock=None, cmd_queu
             with debug_lock:
                 debug.update(kwargs)
 
-    outgoing_lane = outgoing_lane_predetermined
     if leds:
         leds.all_on()
 
-    if outgoing_lane_predetermined is None or has_to_wait_predetermined:
+    needs_detector = _outgoing_lane_override is None or has_to_wait_predetermined
+    if needs_detector:
         object_detector = ObjectDetector(
             config_path="config/object_detection_config.yaml",
             model_path="tasks/object_detection/models/best.onnx"
@@ -45,6 +58,7 @@ def main(camera, wheels, leds, stop_event, debug=None, debug_lock=None, cmd_queu
     printed_lr = False  # remove later
     waiting_for_red_line_to_disappear = False
     manual_drive = {'left': 0.0, 'right': 0.0} if start_in_manual_drive else None
+    outgoing_lane = None
 
     try:
         while not stop_event.is_set():
@@ -55,7 +69,7 @@ def main(camera, wheels, leds, stop_event, debug=None, debug_lock=None, cmd_queu
 
             frame_rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
 
-            # Drain any commands sent from the web UI# Drain any commands sent from the web UI
+            # Drain any commands sent from the web UI
             if cmd_queue is not None:
                 while not cmd_queue.empty():
                     cmd = cmd_queue.get_nowait()
@@ -88,6 +102,7 @@ def main(camera, wheels, leds, stop_event, debug=None, debug_lock=None, cmd_queu
                     yellow_mask=yellow_mask,
                     white_mask=white_mask,
                     detections=[],
+                    lane_debug=None,
                 )
                 time.sleep(0.01)
                 continue
@@ -95,14 +110,13 @@ def main(camera, wheels, leds, stop_event, debug=None, debug_lock=None, cmd_queu
             if bot_state == BotState.convoying:
                 if is_in_front(frame_bgr):
                     waiting_for_red_line_to_disappear = True
-                    #set_all_leds(leds, (1, 0, 1))
 
                 if waiting_for_red_line_to_disappear and has_passed_red_line(frame_bgr):
                     bot_state = get_next_state_and_set_leds(bot_state, leds)
-                    if outgoing_lane_predetermined is None:
-                        outgoing_lane = decide_outgoing_lane(frame_bgr, object_detector)
+                    if _outgoing_lane_override is None:
+                        outgoing_lane = decide_outgoing_lane(frame_rgb, object_detector)
                     else:
-                        outgoing_lane = outgoing_lane_predetermined
+                        outgoing_lane = _outgoing_lane_override
                     print(f"Outgoing lane: {outgoing_lane}")
                     wheels.set_wheels_speed(0.0, 0.0)
                 else:
@@ -167,6 +181,7 @@ def main(camera, wheels, leds, stop_event, debug=None, debug_lock=None, cmd_queu
                 white_mask=white_mask,
                 detections=detected_objects,
                 distance_measure=distance_measure,
+                lane_debug=lane_servoing_agent.last_debug_info,
             )
 
             time.sleep(0.01)
