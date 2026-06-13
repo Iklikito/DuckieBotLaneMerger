@@ -27,3 +27,5 @@ ROBOT_ID = BotName.gedi
 start_in_manual_drive = True
 
 use_p_turn_agent = False
+
+color_coded_leds = True

@@ -1,4 +1,4 @@
-from tasks.project.packages.settings import state_to_led_color, debugging
+from tasks.project.packages.settings import state_to_led_color, debugging, color_coded_leds
 from tasks.project.packages.bot_state import BotState
 from tasks.project.packages.bot_name import BotName
 
@@ -51,13 +51,17 @@ def get_next_state(state: BotState) -> BotState:
         error_message = f"The function get_next_state cannot handle {state}"
         raise ValueError(error_message)
 
+def get_state_entrance_console_message(state: BotState) -> str:
+    return state_to_state_entrance_console_message[state]
+
 def get_next_state_and_set_leds(state: BotState, leds) -> BotState:
     next_state = get_next_state(state)
     next_led_color = state_to_led_color[next_state]
-    set_all_leds(leds, next_led_color)
+    if color_coded_leds:
+        set_front_leds(leds, next_led_color)
 
     if debugging:
-        console_message = state_to_state_entrance_console_message[next_state]
+        console_message = get_state_entrance_console_message(next_state)
         print(console_message)
     
     return next_state
