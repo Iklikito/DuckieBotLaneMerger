@@ -1,4 +1,4 @@
-calibration_complete: false # might be true, I forgot
+calibration_complete: true # might be true, I forgot
 
 east:
   turn: right
