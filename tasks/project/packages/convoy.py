@@ -2,7 +2,7 @@ import numpy as np
 import cv2
 from typing import Tuple
 
-distance_measure_threshold = 50
+distance_measure_threshold = 25
 
 def calculate_distance_measure_to_leader(frame: np.ndarray) -> float:
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -20,6 +20,9 @@ def safe_to_move(frame):
     distance = calculate_distance_measure_to_leader(frame)
     return distance is None or distance >= distance_measure_threshold
 
-def convoy(frame, lane_follower) -> Tuple[float, float]:
-    return (0.2, 0.2) if safe_to_move(frame) else (0.0, 0.0)
-    return lane_follower.compute_commands(frame) if safe_to_move(frame) else (0.0, 0.0)
+def convoy(frame, lane_follower, use_lane_follower) -> Tuple[float, float]:
+    if not safe_to_move(frame):
+        return 0.0, 0.0
+    if use_lane_follower:
+        return lane_follower.compute_commands(frame)
+    return 0.2, 0.2

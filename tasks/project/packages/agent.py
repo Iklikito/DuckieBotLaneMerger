@@ -11,9 +11,10 @@ from tasks.project.packages.convoy import convoy, calculate_distance_measure_to_
 from tasks.project.packages.detect_lane_markings import detect_lane_markings
 from tasks.project.packages.ObjectDetector import ObjectDetector
 from tasks.project.packages.TurnAgent import TurnAgent
+from tasks.project.packages.TurnAgentP import TurnAgentP
 from tasks.project.packages._aux import get_next_state_and_set_leds, set_all_leds
 from tasks.project.packages.LaneServoingAgent import LaneServoingAgent
-from tasks.project.packages.settings import has_to_wait_predetermined, outgoing_lane_predetermined, start_in_manual_drive
+from tasks.project.packages.settings import has_to_wait_predetermined, outgoing_lane_predetermined, start_in_manual_drive, use_p_turn_agent
 
 # Module-level outgoing lane override — readable/writable by real_server via get/set
 _outgoing_lane_override = outgoing_lane_predetermined
@@ -120,7 +121,7 @@ def main(camera, wheels, leds, stop_event, debug=None, debug_lock=None, cmd_queu
                     print(f"Outgoing lane: {outgoing_lane}")
                     wheels.set_wheels_speed(0.0, 0.0)
                 else:
-                    left, right = convoy(frame_rgb, lane_servoing_agent)
+                    left, right = convoy(frame_rgb, lane_servoing_agent, use_lane_follower=not waiting_for_red_line_to_disappear)
                     wheels.set_wheels_speed(left, right)
 
             elif bot_state == BotState.waiting:
@@ -131,7 +132,10 @@ def main(camera, wheels, leds, stop_event, debug=None, debug_lock=None, cmd_queu
                     can_merge = areEmptyLanesUntil(outgoing_lane, detected_objects)
                 else:
                     bot_state = get_next_state_and_set_leds(bot_state, leds)
-                    turn_agent = TurnAgent(outgoing_lane)
+                    if use_p_turn_agent:
+                        turn_agent = TurnAgentP(outgoing_lane, wheels)
+                    else:
+                        turn_agent = TurnAgent(outgoing_lane)
                     print("Switched to turning...")
                     continue
 
@@ -143,12 +147,15 @@ def main(camera, wheels, leds, stop_event, debug=None, debug_lock=None, cmd_queu
                     print(f"Can merge: {can_merge}")
                     if can_merge:
                         bot_state = get_next_state_and_set_leds(bot_state, leds)
-                        turn_agent = TurnAgent(outgoing_lane)
+                        if use_p_turn_agent:
+                            turn_agent = TurnAgentP(outgoing_lane, wheels)
+                        else:
+                            turn_agent = TurnAgent(outgoing_lane)
                         print("Switched to turning...")
 
             elif bot_state == BotState.turning:
-                print("Calling turn_agent.step")
-                left, right, reentered = turn_agent.step(frame_bgr)
+                print("Calling turn_agent.compute_commands")
+                left, right, reentered = turn_agent.compute_commands(frame_bgr)
                 if not printed_lr:
                     print(f"Turning: left={left}, right={right}")
                     printed_lr = True

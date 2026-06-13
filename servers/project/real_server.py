@@ -25,7 +25,7 @@ import tasks.project.packages.agent as agent_module
 from tasks.project.packages.is_in_front_decider import get_hsv_bounds, set_hsv_bounds
 import tasks.project.packages.detect_lane_markings as lane_markings_module
 from tasks.project.packages.ObjectDetector import ObjectDetector
-from tasks.project.packages._aux import get_turn_agent_config_path
+from tasks.project.packages.TurnAgent import _get_config_path as get_turn_agent_config_path
 from tasks.project.packages.settings import ROBOT_ID
 
 app        = Flask(__name__)

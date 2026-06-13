@@ -19,9 +19,11 @@ state_to_led_color = {
 
 debugging = True
 
-has_to_wait_predetermined = False # For testing. False if the bot doesn't need to yield
-outgoing_lane_predetermined = AdjacentLane.west # For testing. None if the bot need to determine it
+has_to_wait_predetermined = True # For testing. False if the bot doesn't need to yield
+outgoing_lane_predetermined = None # For testing. None if the bot need to determine it
 
-ROBOT_ID = BotName.megatron
+ROBOT_ID = BotName.gedi
 
 start_in_manual_drive = True
+
+use_p_turn_agent = False
