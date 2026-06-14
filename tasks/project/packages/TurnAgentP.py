@@ -7,7 +7,7 @@ from tasks.project.packages.adjacent_lanes import AdjacentLane
 from tasks.project.packages.detect_lane_markings import detect_lane_markings
 from tasks.project.packages.settings import ROBOT_ID
 
-_REENTRY_THRESHOLD = 600
+_REENTRY_THRESHOLD = 400
 _N_TOT   = 135        # ticks per revolution
 _R       = 0.025      # wheel radius (m)
 _L       = 0.9        # baseline (m), half = 0.05

@@ -1,3 +1,5 @@
+import socket
+
 from tasks.project.packages.bot_state import BotState
 from tasks.project.packages.adjacent_lanes import AdjacentLane
 from tasks.project.packages.bot_name import BotName
@@ -19,13 +21,22 @@ state_to_led_color = {
 
 debugging = True
 
-has_to_wait_predetermined = True # For testing. False if the bot doesn't need to yield
-outgoing_lane_predetermined = None # For testing. None if the bot need to determine it
+has_to_wait_predetermined = False # For testing. False if the bot doesn't need to yield
+outgoing_lane_predetermined = AdjacentLane.north # For testing. None if the bot need to determine it
 
-ROBOT_ID = BotName.gedi
+def _detect_robot_id():
+    hostname = socket.gethostname()
+    try:
+        print(f"ROBOT ID: {BotName[hostname]}")
+        return BotName[hostname]
+    except KeyError:
+        print(f"ROBOT ID: {BotName.simulation}")
+        return BotName.simulation
+
+ROBOT_ID = _detect_robot_id()
 
 start_in_manual_drive = True
 
 use_p_turn_agent = False
 
-color_coded_leds = True
+color_coded_leds = False

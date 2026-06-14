@@ -7,7 +7,7 @@ from tasks.project.packages.adjacent_lanes import AdjacentLane
 from tasks.project.packages.detect_lane_markings import detect_lane_markings
 from tasks.project.packages.settings import ROBOT_ID
 
-_REENTRY_THRESHOLD = 600
+_REENTRY_THRESHOLD = 400
 
 
 def _get_config_path(robot_id):

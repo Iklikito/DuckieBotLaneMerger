@@ -1,3 +1,5 @@
+import socket
+
 from tasks.project.packages.settings import state_to_led_color, debugging, color_coded_leds
 from tasks.project.packages.bot_state import BotState
 from tasks.project.packages.bot_name import BotName

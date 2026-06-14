@@ -1,6 +1,7 @@
 import time
 import cv2
 import numpy as np
+from typing import Optional
 
 from tasks.project.packages.bot_state import BotState
 from tasks.project.packages.adjacent_lanes import AdjacentLane
@@ -14,7 +15,7 @@ from tasks.project.packages.TurnAgent import TurnAgent
 from tasks.project.packages.TurnAgentP import TurnAgentP
 from tasks.project.packages._aux import get_next_state_and_set_leds, set_all_leds
 from tasks.project.packages.LaneServoingAgent import LaneServoingAgent
-from tasks.project.packages.settings import has_to_wait_predetermined, outgoing_lane_predetermined, start_in_manual_drive, use_p_turn_agent
+from tasks.project.packages.settings import has_to_wait_predetermined, outgoing_lane_predetermined, start_in_manual_drive, use_p_turn_agent, color_coded_leds
 
 # Module-level outgoing lane override — readable/writable by real_server via get/set
 _outgoing_lane_override = outgoing_lane_predetermined
@@ -38,7 +39,7 @@ def main(camera, wheels, leds, stop_event, debug=None, debug_lock=None, cmd_queu
             with debug_lock:
                 debug.update(kwargs)
 
-    if leds:
+    if color_coded_leds and leds:
         leds.all_on()
 
     needs_detector = _outgoing_lane_override is None or has_to_wait_predetermined

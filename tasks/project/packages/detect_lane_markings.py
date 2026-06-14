@@ -21,7 +21,7 @@ def detect_lane_markings(image: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     h, w = image.shape[:2]
 
     # Noise reduction
-    blurred = cv2.GaussianBlur(image, (5, 5), 0)
+    blurred = cv2.GaussianBlur(image, (7, 7), 0)
 
     # HSV conversion
     hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
@@ -45,6 +45,11 @@ def detect_lane_markings(image: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     mask_yellow = cv2.bitwise_and(mask_yellow, mask_yellow_area)
     mask_white = cv2.bitwise_and(mask_white, mask_horizon)
     mask_white = cv2.bitwise_and(mask_white, mask_white_area)
+
+    # After applying region masks, before converting to float
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+    mask_yellow = cv2.morphologyEx(mask_yellow, cv2.MORPH_OPEN, kernel)
+    mask_white = cv2.morphologyEx(mask_white, cv2.MORPH_OPEN, kernel)
 
     # Convert to 0/1 float masks if the rest of your pipeline expects floats
     mask_yellow = (mask_yellow > 0).astype(float)
