@@ -27,7 +27,10 @@ from tasks.project.packages.is_in_front_decider import get_hsv_bounds, set_hsv_b
 import tasks.project.packages.detect_lane_markings as lane_markings_module
 from tasks.project.packages.ObjectDetector import ObjectDetector
 from tasks.project.packages.TurnAgent import _get_config_path as get_turn_agent_config_path
-from tasks.project.packages.settings import ROBOT_ID
+from tasks.project.packages.TurnAgentPID import _get_config_path as get_turn_agent_pid_config_path
+from tasks.project.packages.convoy import get_distance_threshold, set_distance_threshold
+from tasks.project.packages.LaneServoingAgent import get_lane_servoing_params, set_lane_servoing_params
+from tasks.project.packages.settings import ROBOT_ID, use_p_turn_agent
 
 app        = Flask(__name__)
 camera     = None
@@ -74,7 +77,7 @@ def _draw_lane_servoing_overlay(img: np.ndarray, yellow_xs, white_xs, slice_ys) 
 
 generate_frames = make_frame_generator(lambda: camera, _visualize, quality=70, rgb=False)
 
-HTML_TEMPLATE = get_template(title='Project', subtitle='Real Duckiebot')
+HTML_TEMPLATE = get_template(title='Project', subtitle='Real Duckiebot', use_p_turn_agent=use_p_turn_agent)
 
 
 @app.route('/')
@@ -250,10 +253,64 @@ def turn_config_post():
     direction = data.get('direction')
     if direction not in cfg:
         return jsonify({'status': 'error', 'message': f'unknown direction: {direction}'}), 400
-    cfg[direction]['turn']            = str(data['turn'])
-    cfg[direction]['turn_speed']      = float(data['turn_speed'])
-    cfg[direction]['turn_bias']       = float(data['turn_bias'])
-    cfg[direction]['reentry_delay_s'] = float(data['reentry_delay_s'])
+    dir_cfg = cfg[direction]
+    for key in ('turn', 'turn_speed', 'turn_bias', 'reentry_delay_s'):
+        if key in data:
+            dir_cfg[key] = str(data[key]) if key == 'turn' else float(data[key])
+    with open(path, 'w') as f:
+        _yaml.dump(cfg, f, default_flow_style=False)
+    return jsonify({'status': 'ok', **cfg})
+
+
+@app.route('/convoy_threshold', methods=['GET'])
+def convoy_threshold_get():
+    return jsonify({'threshold': get_distance_threshold()})
+
+@app.route('/convoy_threshold', methods=['POST'])
+def convoy_threshold_post():
+    data = request.get_json(force=True) or {}
+    value = data.get('threshold')
+    if value is None:
+        return jsonify({'status': 'error', 'message': 'missing threshold'}), 400
+    set_distance_threshold(float(value))
+    return jsonify({'status': 'ok', 'threshold': get_distance_threshold()})
+
+
+@app.route('/lane_servoing_params', methods=['GET'])
+def lane_servoing_params_get():
+    return jsonify(get_lane_servoing_params())
+
+@app.route('/lane_servoing_params', methods=['POST'])
+def lane_servoing_params_post():
+    data = request.get_json(force=True) or {}
+    set_lane_servoing_params(data)
+    return jsonify({'status': 'ok', **get_lane_servoing_params()})
+
+
+@app.route('/turn_config_pid', methods=['GET'])
+def turn_config_pid_get():
+    with open(get_turn_agent_pid_config_path(ROBOT_ID)) as f:
+        return jsonify(_yaml.safe_load(f))
+
+@app.route('/turn_config_pid', methods=['POST'])
+def turn_config_pid_post():
+    data = request.get_json(force=True) or {}
+    path = get_turn_agent_pid_config_path(ROBOT_ID)
+    with open(path) as f:
+        cfg = _yaml.safe_load(f)
+    direction = data.get('direction')
+    if direction not in cfg:
+        return jsonify({'status': 'error', 'message': f'unknown direction: {direction}'}), 400
+    dir_cfg = cfg[direction]
+    for key in ('turn', 'speed', 'kp', 'ki', 'kd', 'inner_radius', 'outer_radius', 'straight'):
+        if key in data:
+            val = data[key]
+            if key == 'turn':
+                dir_cfg[key] = str(val)
+            elif key == 'straight':
+                dir_cfg[key] = bool(val)
+            else:
+                dir_cfg[key] = float(val)
     with open(path, 'w') as f:
         _yaml.dump(cfg, f, default_flow_style=False)
     return jsonify({'status': 'ok', **cfg})

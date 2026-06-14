@@ -14,7 +14,7 @@ from tasks.project.packages.ObjectDetector import ObjectDetector
 from tasks.project.packages.TurnAgent import TurnAgent
 from tasks.project.packages.TurnAgentPID import TurnAgentPID
 from tasks.project.packages._aux import get_next_state_and_set_leds, set_all_leds
-from tasks.project.packages.LaneServoingAgent import LaneServoingAgent
+from tasks.project.packages.LaneServoingAgent import LaneServoingAgent, register_live_agent
 from tasks.project.packages.settings import has_to_wait_predetermined, outgoing_lane_predetermined, start_in_manual_drive, use_p_turn_agent, color_coded_leds
 
 # Module-level outgoing lane override — readable/writable by real_server via get/set
@@ -54,6 +54,7 @@ def main(camera, wheels, leds, stop_event, debug=None, debug_lock=None, cmd_queu
         print("Model loaded!")
 
     lane_servoing_agent = LaneServoingAgent()
+    register_live_agent(lane_servoing_agent)
     print("Object detector and lane follower initialized.")
 
     bot_state = get_next_state_and_set_leds(state=None, leds=leds)

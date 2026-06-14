@@ -7,9 +7,8 @@ import yaml
 from tasks.project.packages.settings import ROBOT_ID
 
 def _get_config_path(robot_id):
-    if robot_id.name == 'simulation':
-        return 'config/lane_servoing_hsv_config.yaml'
-    return f'config/lane_servoing_hsv_config.{robot_id.name}.yaml'
+    folder = 'default' if robot_id.name == 'simulation' else robot_id.name
+    return f'config/{folder}/lane_servoing_hsv_config.yaml'
 
 #_HSV_FILE = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'config', 'lane_servoing_hsv_config.yaml')
 _HSV_FILE = _get_config_path(ROBOT_ID)

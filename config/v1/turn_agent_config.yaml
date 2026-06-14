@@ -1,0 +1,19 @@
+calibration_complete: false
+
+east:
+  turn: right
+  turn_speed: 0.4
+  turn_bias: 0.25
+  reentry_delay_s: 0
+
+north:
+  turn: left
+  turn_speed: 0.36
+  turn_bias: 0.0
+  reentry_delay_s: 2.1
+
+west:
+  turn: left
+  turn_speed: 0.4
+  turn_bias: 0.12
+  reentry_delay_s: 2.4

@@ -7,3 +7,4 @@ class BotName(Enum):
     franky = 3
     glados = 4
     ordis = 5
+    v1 = 6

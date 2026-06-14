@@ -1,0 +1,14 @@
+calibration_complete: false
+
+white_lower_h: 0
+white_lower_s: 0
+white_lower_v: 170
+white_upper_h: 179
+white_upper_s: 100
+white_upper_v: 255
+yellow_lower_h: 10
+yellow_lower_s: 85
+yellow_lower_v: 0
+yellow_upper_h: 35
+yellow_upper_s: 200
+yellow_upper_v: 255

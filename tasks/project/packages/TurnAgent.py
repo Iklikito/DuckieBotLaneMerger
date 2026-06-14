@@ -11,9 +11,8 @@ _REENTRY_THRESHOLD = 400
 
 
 def _get_config_path(robot_id):
-    if robot_id.name == 'simulation':
-        return 'config/turn_agent_config.yaml'
-    return f'config/turn_agent_config.{robot_id.name}.yaml'
+    folder = 'default' if robot_id.name == 'simulation' else robot_id.name
+    return f'config/{folder}/turn_agent_config.yaml'
 
 
 class TurnAgent:

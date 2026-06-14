@@ -10,9 +10,8 @@ from tasks.project.packages.settings import ROBOT_ID
 #from tasks.visual_lane_servoing.packages.visual_servoing_activity import detect_lane_markings
 
 def _get_config_path(robot_id):
-    if robot_id.name == 'simulation':
-        return 'config/lane_servoing_config.yaml'
-    return f'config/lane_servoing_config.{robot_id.name}.yaml'
+    folder = 'default' if robot_id.name == 'simulation' else robot_id.name
+    return f'config/{folder}/lane_servoing_config.yaml'
 
 #_CONFIG_FILE = os.path.normpath(os.path.join(
 #    os.path.dirname(__file__), '..', '..', '..', 'config', 'lane_servoing_config.yaml'
@@ -75,6 +74,34 @@ def detect_lines_in_slices(
             white_xs.append(int(np.mean(idx)))
 
     return yellow_xs, white_xs
+
+
+_live_agent = None  # set by agent.py after instantiation
+
+LANE_SERVOING_PARAM_KEYS = [
+    'p_gain', 'd_gain', 'max_steer', 'base_speed', 'curve_speed',
+    'curve_threshold', 'steering_threshold', 'curve_boost',
+    'detection_threshold', 'alpha',
+]
+
+
+def register_live_agent(agent):
+    global _live_agent
+    _live_agent = agent
+
+
+def get_lane_servoing_params() -> dict:
+    if _live_agent is None:
+        return {}
+    return {k: getattr(_live_agent, k) for k in LANE_SERVOING_PARAM_KEYS}
+
+
+def set_lane_servoing_params(params: dict):
+    if _live_agent is None:
+        return
+    for k, v in params.items():
+        if k in LANE_SERVOING_PARAM_KEYS:
+            setattr(_live_agent, k, type(getattr(_live_agent, k))(v))
 
 
 class LaneServoingAgent:

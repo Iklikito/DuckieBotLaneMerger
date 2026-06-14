@@ -4,6 +4,15 @@ from typing import Tuple
 
 distance_measure_threshold = 25
 
+
+def get_distance_threshold() -> float:
+    return distance_measure_threshold
+
+
+def set_distance_threshold(value: float):
+    global distance_measure_threshold
+    distance_measure_threshold = float(value)
+
 def calculate_distance_measure_to_leader(frame: np.ndarray) -> float:
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 

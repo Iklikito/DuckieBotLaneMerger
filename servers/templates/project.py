@@ -162,6 +162,59 @@ _CONTENT = '''
                 <div id="laneHsvStatus" class="status" style="margin-top:6px;"></div>
             </div>
 
+            <!-- Distance threshold card -->
+            <div class="card">
+                <div class="card-header">Convoy Distance Threshold</div>
+                <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px;">
+                    Minimum dot-grid neighbour distance. Below this the robot stops (<code style="color:var(--accent-blue);">safe_to_move</code> returns false).
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+                    <span class="hsv-label" style="width:auto;white-space:nowrap;">Threshold</span>
+                    <input type="range" class="slider" id="distThreshSlider"
+                           min="1" max="100" step="0.5" value="25" style="flex:1;">
+                    <input type="number" class="input-box" id="distThreshInput"
+                           min="1" max="100" step="0.5" value="25" style="width:54px;">
+                </div>
+                <div id="distThreshLive" style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">
+                    Live: <span id="distThreshCurrent" style="color:var(--accent-blue);font-family:monospace;">—</span>
+                </div>
+                <button class="button" onclick="applyDistThreshold()">Apply</button>
+                <div id="distThreshStatus" class="status" style="margin-top:6px;"></div>
+            </div>
+
+            <!-- Lane servoing params card -->
+            <div class="card">
+                <div class="card-header">Lane Servoing Parameters</div>
+                <div id="laneServoingParams" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;"></div>
+                <div style="display:flex;gap:6px;margin-top:4px;">
+                    <button class="button" onclick="applyLaneServoing()" style="flex:1;">Apply</button>
+                    <button class="button" onclick="loadLaneServoingParams()" style="flex:1;background:var(--bg-sidebar);">Reload</button>
+                </div>
+                <div id="laneServoingStatus" class="status" style="margin-top:6px;"></div>
+            </div>
+
+            <!-- Turn agent params card -->
+            <div class="card">
+                <div class="card-header">Turn Agent Parameters</div>
+                <div style="margin-bottom:8px;">
+                    <select id="turnDirSelect" style="padding:6px 8px;background:var(--bg-sidebar);
+                            border:1px solid var(--border-color);border-radius:4px;
+                            color:var(--text-primary);font-size:13px;width:100%;"
+                            onchange="loadTurnParams()">
+                        <option value="north">North</option>
+                        <option value="east">East</option>
+                        <option value="west">West</option>
+                        <option value="south">South</option>
+                    </select>
+                </div>
+                <div id="turnAgentParams" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;"></div>
+                <div style="display:flex;gap:6px;margin-top:4px;">
+                    <button class="button" onclick="applyTurnParams()" style="flex:1;">Apply</button>
+                    <button class="button" onclick="loadTurnParams()" style="flex:1;background:var(--bg-sidebar);">Reload</button>
+                </div>
+                <div id="turnParamsStatus" class="status" style="margin-top:6px;"></div>
+            </div>
+
             <!-- Send command card -->
             <div class="card">
                 <div class="card-header">Send Command</div>
@@ -555,6 +608,170 @@ document.getElementById('cmdValue').addEventListener('keydown', e => {
     if (e.key === 'Enter') sendCommand();
 });
 
+/* ── Convoy distance threshold ── */
+function loadDistThreshold() {
+    fetch('/convoy_threshold')
+        .then(r => r.json())
+        .then(data => {
+            document.getElementById('distThreshCurrent').textContent = data.threshold.toFixed(1);
+        })
+        .catch(() => {});
+}
+
+function applyDistThreshold() {
+    const val = parseFloat(document.getElementById('distThreshInput').value);
+    postJSON('/convoy_threshold', { threshold: val })
+        .then(r => {
+            showStatus('distThreshStatus', 'Applied (' + r.threshold.toFixed(1) + ')', 'success');
+            document.getElementById('distThreshCurrent').textContent = r.threshold.toFixed(1);
+        })
+        .catch(e => showStatus('distThreshStatus', 'Error: ' + e, 'error'));
+}
+
+// Keep slider and number input in sync
+document.getElementById('distThreshSlider').addEventListener('input', function() {
+    document.getElementById('distThreshInput').value = this.value;
+});
+document.getElementById('distThreshInput').addEventListener('input', function() {
+    const v = Math.min(100, Math.max(1, parseFloat(this.value) || 1));
+    document.getElementById('distThreshSlider').value = v;
+});
+
+/* ── Lane servoing parameters ── */
+const LANE_SERVO_PARAMS = [
+    { key: 'p_gain',              label: 'P gain',              min: 0,   max: 5,    step: 0.01  },
+    { key: 'd_gain',              label: 'D gain',              min: 0,   max: 5,    step: 0.01  },
+    { key: 'max_steer',           label: 'Max steer',           min: 0,   max: 1,    step: 0.01  },
+    { key: 'base_speed',          label: 'Base speed',          min: 0,   max: 1,    step: 0.01  },
+    { key: 'curve_speed',         label: 'Curve speed',         min: 0,   max: 1,    step: 0.01  },
+    { key: 'curve_boost',         label: 'Curve boost',         min: 1,   max: 5,    step: 0.05  },
+    { key: 'curve_threshold',     label: 'Curve threshold',     min: 0,   max: 1000, step: 1     },
+    { key: 'steering_threshold',  label: 'Steering threshold',  min: 0,   max: 1,    step: 0.01  },
+    { key: 'detection_threshold', label: 'Detection threshold', min: 0,   max: 500,  step: 1     },
+    { key: 'alpha',               label: 'Alpha (EMA)',         min: 0,   max: 1,    step: 0.01  },
+];
+
+function buildLaneServoingRows(data) {
+    const container = document.getElementById('laneServoingParams');
+    container.innerHTML = '';
+    LANE_SERVO_PARAMS.forEach(p => {
+        const val = data[p.key] !== undefined ? data[p.key] : '';
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex;align-items:center;gap:8px;';
+        row.innerHTML = `
+            <span class="hsv-label" style="width:140px;font-size:11px;white-space:nowrap;">${p.label}</span>
+            <input type="range" class="slider" id="ls_slider_${p.key}"
+                   min="${p.min}" max="${p.max}" step="${p.step}" value="${val}" style="flex:1;"
+                   oninput="document.getElementById('ls_num_${p.key}').value=this.value">
+            <input type="number" class="input-box" id="ls_num_${p.key}"
+                   min="${p.min}" max="${p.max}" step="${p.step}" value="${val}" style="width:60px;"
+                   oninput="document.getElementById('ls_slider_${p.key}').value=this.value">`;
+        container.appendChild(row);
+    });
+}
+
+function loadLaneServoingParams() {
+    fetch('/lane_servoing_params')
+        .then(r => r.json())
+        .then(data => buildLaneServoingRows(data))
+        .catch(() => showStatus('laneServoingStatus', 'Failed to load', 'error'));
+}
+
+function applyLaneServoing() {
+    const payload = {};
+    LANE_SERVO_PARAMS.forEach(p => {
+        const el = document.getElementById('ls_num_' + p.key);
+        if (el) payload[p.key] = parseFloat(el.value);
+    });
+    postJSON('/lane_servoing_params', payload)
+        .then(r => {
+            showStatus('laneServoingStatus', 'Applied', 'success');
+            buildLaneServoingRows(r);
+        })
+        .catch(e => showStatus('laneServoingStatus', 'Error: ' + e, 'error'));
+}
+
+/* ── Turn agent parameters ── */
+const TURN_PID_KEYS = [
+    { key: 'speed',         label: 'Speed',         min: 0, max: 1,   step: 0.01 },
+    { key: 'kp',            label: 'Kp',            min: 0, max: 20,  step: 0.1  },
+    { key: 'ki',            label: 'Ki',            min: 0, max: 5,   step: 0.01 },
+    { key: 'kd',            label: 'Kd',            min: 0, max: 5,   step: 0.01 },
+    { key: 'inner_radius',  label: 'Inner radius',  min: 0, max: 1,   step: 0.001 },
+    { key: 'outer_radius',  label: 'Outer radius',  min: 0, max: 1,   step: 0.001 },
+];
+
+const TURN_BASIC_KEYS = [
+    { key: 'turn_speed', label: 'Turn speed', min: 0, max: 1,    step: 0.01  },
+    { key: 'turn_bias',  label: 'Turn bias',  min: -1, max: 1,   step: 0.005 },
+    { key: 'reentry_delay_s', label: 'Reentry delay (s)', min: 0, max: 5, step: 0.05 },
+];
+
+let _turnConfigFull = {};
+
+function buildTurnParamRows(dirCfg, isPid) {
+    const keys = isPid ? TURN_PID_KEYS : TURN_BASIC_KEYS;
+    const container = document.getElementById('turnAgentParams');
+    container.innerHTML = '';
+
+    // Direction label badge
+    const badge = document.createElement('div');
+    badge.style.cssText = 'font-size:11px;color:var(--text-muted);margin-bottom:4px;';
+    const directionVal = dirCfg.turn || (dirCfg.straight ? 'straight' : '—');
+    badge.textContent = 'Direction: ' + directionVal;
+    container.appendChild(badge);
+
+    keys.forEach(p => {
+        const val = dirCfg[p.key] !== undefined ? dirCfg[p.key] : '';
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex;align-items:center;gap:8px;';
+        row.innerHTML = `
+            <span class="hsv-label" style="width:140px;font-size:11px;white-space:nowrap;">${p.label}</span>
+            <input type="range" class="slider" id="ta_slider_${p.key}"
+                   min="${p.min}" max="${p.max}" step="${p.step}" value="${val}" style="flex:1;"
+                   oninput="document.getElementById('ta_num_${p.key}').value=this.value">
+            <input type="number" class="input-box" id="ta_num_${p.key}"
+                   min="${p.min}" max="${p.max}" step="${p.step}" value="${val}" style="width:70px;"
+                   oninput="document.getElementById('ta_slider_${p.key}').value=this.value">`;
+        container.appendChild(row);
+    });
+}
+
+function loadTurnParams() {
+    const dir = document.getElementById('turnDirSelect').value;
+    const endpoint = USE_P_TURN_AGENT ? '/turn_config_pid' : '/turn_config';
+    fetch(endpoint)
+        .then(r => r.json())
+        .then(data => {
+            _turnConfigFull = data;
+            const dirCfg = data[dir];
+            if (!dirCfg) {
+                showStatus('turnParamsStatus', 'Direction not in config', 'error');
+                return;
+            }
+            buildTurnParamRows(dirCfg, USE_P_TURN_AGENT);
+        })
+        .catch(() => showStatus('turnParamsStatus', 'Failed to load', 'error'));
+}
+
+function applyTurnParams() {
+    const dir = document.getElementById('turnDirSelect').value;
+    const endpoint = USE_P_TURN_AGENT ? '/turn_config_pid' : '/turn_config';
+    const keys = USE_P_TURN_AGENT ? TURN_PID_KEYS : TURN_BASIC_KEYS;
+    const payload = { direction: dir };
+    keys.forEach(p => {
+        const el = document.getElementById('ta_num_' + p.key);
+        if (el && el.value !== '') payload[p.key] = parseFloat(el.value);
+    });
+    postJSON(endpoint, payload)
+        .then(r => {
+            showStatus('turnParamsStatus', 'Saved to YAML', 'success');
+            _turnConfigFull = r;
+            buildTurnParamRows(r[dir], USE_P_TURN_AGENT);
+        })
+        .catch(e => showStatus('turnParamsStatus', 'Error: ' + e, 'error'));
+}
+
 /* ── Boot ── */
 buildHsvSliders();
 loadHsvBounds();
@@ -564,15 +781,20 @@ refreshStatus();
 refreshDebugFrame();
 setInterval(refreshStatus,     500);
 setInterval(refreshDebugFrame, 100);
+setInterval(loadDistThreshold, 1000);
 loadOutgoingLane();
+loadDistThreshold();
+loadLaneServoingParams();
+loadTurnParams();
 '''
 
 
-def get_template(title='Project', subtitle='Real Duckiebot'):
+def get_template(title='Project', subtitle='Real Duckiebot', use_p_turn_agent=False):
+    js_globals = f'const USE_P_TURN_AGENT = {"true" if use_p_turn_agent else "false"};\n'
     return render_template(
         title=title,
         subtitle=subtitle,
         content_html=_CONTENT,
         extra_css=_EXTRA_CSS,
-        extra_js=_EXTRA_JS,
+        extra_js=js_globals + _EXTRA_JS,
     )
