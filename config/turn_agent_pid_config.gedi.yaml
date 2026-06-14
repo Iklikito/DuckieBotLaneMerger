@@ -1,0 +1,28 @@
+calibration_complete: false
+
+east:
+  turn: right
+  speed: 0.4
+  inner_radius: 0.2825
+  outer_radius: 0.3725
+  kp: 5.0
+  ki: 0.0
+  kd: 0.0
+
+north:
+  straight: true
+  speed: 0.3
+  inner_radius: 0.3375
+  outer_radius: 0.3375
+  kp: 5.0
+  ki: 0.0
+  kd: 0.0
+
+west:
+  turn: left
+  speed: 0.3
+  inner_radius: 0.2925
+  outer_radius: 0.3825
+  kp: 5.0
+  ki: 0.0
+  kd: 0.0
