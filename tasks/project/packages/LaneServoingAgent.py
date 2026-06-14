@@ -164,8 +164,6 @@ class LaneServoingAgent:
 
     def compute_commands(self, image: np.ndarray) -> Tuple[float, float]:
         self.frame_count += 1
-        print(_CONFIG_FILE)
-        print(self.p_gain)
         bgr = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
         try:

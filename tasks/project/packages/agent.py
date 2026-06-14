@@ -53,7 +53,7 @@ def main(camera, wheels, leds, stop_event, debug=None, debug_lock=None, cmd_queu
             print("Waiting for model to load...")
         print("Model loaded!")
 
-    lane_servoing_agent = LaneServoingAgent(config_path="config/lane_servoing_config.yaml")
+    lane_servoing_agent = LaneServoingAgent()
     print("Object detector and lane follower initialized.")
 
     bot_state = get_next_state_and_set_leds(state=None, leds=leds)
