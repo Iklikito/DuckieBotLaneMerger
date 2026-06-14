@@ -7,6 +7,6 @@ curve_threshold: 350
 d_gain: 1.0
 detection_threshold: 100
 max_steer: 0.4
-p_gain: 0.2
+p_gain: 0.1
 steering_threshold: 0.2
 alpha: 0.5
