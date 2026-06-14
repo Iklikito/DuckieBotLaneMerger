@@ -44,7 +44,7 @@ def detect_lane_markings(image: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
 
     # Ignore far-left region for white lane
     mask_yellow_area = np.ones((h, w), dtype=np.uint8) * 255
-    mask_yellow_area[:, w//2:] = 0
+    mask_yellow_area[:, 3*w//4:] = 0
     mask_white_area = np.ones((h, w), dtype=np.uint8) * 255
     mask_white_area[:, :w//2] = 0
 

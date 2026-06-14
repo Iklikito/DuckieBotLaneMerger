@@ -134,7 +134,7 @@ def main(camera, wheels, leds, stop_event, debug=None, debug_lock=None, cmd_queu
                 else:
                     bot_state = get_next_state_and_set_leds(bot_state, leds)
                     if use_p_turn_agent:
-                        turn_agent = TurnAgentP(outgoing_lane, wheels)
+                        turn_agent = TurnAgentPID(outgoing_lane, wheels)
                     else:
                         turn_agent = TurnAgent(outgoing_lane)
                     print("Switched to turning...")
@@ -149,7 +149,7 @@ def main(camera, wheels, leds, stop_event, debug=None, debug_lock=None, cmd_queu
                     if can_merge:
                         bot_state = get_next_state_and_set_leds(bot_state, leds)
                         if use_p_turn_agent:
-                            turn_agent = TurnAgentP(outgoing_lane, wheels)
+                            turn_agent = TurnAgentPID(outgoing_lane, wheels)
                         else:
                             turn_agent = TurnAgent(outgoing_lane)
                         print("Switched to turning...")
