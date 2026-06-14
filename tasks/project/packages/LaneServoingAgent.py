@@ -6,11 +6,19 @@ from collections import deque
 from typing import Tuple, List
 
 from tasks.project.packages.detect_lane_markings import detect_lane_markings
+from tasks.project.packages.settings import ROBOT_ID
 #from tasks.visual_lane_servoing.packages.visual_servoing_activity import detect_lane_markings
 
-_CONFIG_FILE = os.path.normpath(os.path.join(
-    os.path.dirname(__file__), '..', '..', '..', 'config', 'lane_servoing_config.yaml'
-))
+def _get_config_path(robot_id):
+    if robot_id.name == 'simulation':
+        return 'config/lane_servoing_config.yaml'
+    return f'config/lane_servoing_config.{robot_id.name}.yaml'
+
+#_CONFIG_FILE = os.path.normpath(os.path.join(
+#    os.path.dirname(__file__), '..', '..', '..', 'config', 'lane_servoing_config.yaml'
+#))
+
+_CONFIG_FILE = _get_config_path(ROBOT_ID)
 
 _LINE_OFFSET = 160
 _ROI_START   = 0.47

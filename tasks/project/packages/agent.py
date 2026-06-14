@@ -12,7 +12,7 @@ from tasks.project.packages.convoy import convoy, calculate_distance_measure_to_
 from tasks.project.packages.detect_lane_markings import detect_lane_markings
 from tasks.project.packages.ObjectDetector import ObjectDetector
 from tasks.project.packages.TurnAgent import TurnAgent
-from tasks.project.packages.TurnAgentP import TurnAgentP
+from tasks.project.packages.TurnAgentPID import TurnAgentPID
 from tasks.project.packages._aux import get_next_state_and_set_leds, set_all_leds
 from tasks.project.packages.LaneServoingAgent import LaneServoingAgent
 from tasks.project.packages.settings import has_to_wait_predetermined, outgoing_lane_predetermined, start_in_manual_drive, use_p_turn_agent, color_coded_leds

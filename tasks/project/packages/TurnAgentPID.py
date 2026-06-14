@@ -19,7 +19,7 @@ def _get_config_path(robot_id):
     return f'config/turn_agent_p_config.{robot_id.name}.yaml'
 
 
-class TurnAgentP:
+class TurnAgentPID:
     def __init__(self,
                  outgoing_lane: AdjacentLane = AdjacentLane.north,
                  wheels=None):
