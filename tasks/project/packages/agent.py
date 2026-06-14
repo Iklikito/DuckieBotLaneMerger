@@ -15,7 +15,7 @@ from tasks.project.packages.TurnAgent import TurnAgent
 from tasks.project.packages.TurnAgentPID import TurnAgentPID
 from tasks.project.packages._aux import get_next_state_and_set_leds, set_all_leds
 from tasks.project.packages.LaneServoingAgent import LaneServoingAgent, register_live_agent
-from tasks.project.packages.settings import has_to_wait_predetermined, outgoing_lane_predetermined, start_in_manual_drive, use_p_turn_agent, color_coded_leds
+from tasks.project.packages.settings import has_to_wait_predetermined, outgoing_lane_predetermined, start_in_manual_drive, use_p_turn_agent, color_coded_leds, required_merge_confirmations, merge_check_interval_s
 
 # Module-level outgoing lane override — readable/writable by real_server via get/set
 _outgoing_lane_override = outgoing_lane_predetermined
@@ -62,6 +62,9 @@ def main(camera, wheels, leds, stop_event, debug=None, debug_lock=None, cmd_queu
     waiting_for_red_line_to_disappear = False
     manual_drive = {'left': 0.0, 'right': 0.0} if start_in_manual_drive else None
     outgoing_lane = None
+
+    merge_confirmation_counter = 0
+    last_merge_check_time = 0
 
     try:
         while not stop_event.is_set():
@@ -128,10 +131,31 @@ def main(camera, wheels, leds, stop_event, debug=None, debug_lock=None, cmd_queu
 
             elif bot_state == BotState.waiting:
                 if has_to_wait_predetermined:
-                    detected_objects = object_detector.detect(frame_rgb) or []
-                    print("Waiting...")
-                    print(f"Detected objects: {detected_objects}")
-                    can_merge = areEmptyLanesUntil(outgoing_lane, detected_objects)
+                    now = time.time()
+                    per_check_interval = merge_check_interval_s / (required_merge_confirmations - 1) if required_merge_confirmations > 1 else 0
+                    if now - last_merge_check_time >= per_check_interval:
+                        last_merge_check_time = now
+                        detected_objects = object_detector.detect(frame_rgb) or []
+                        print("Waiting...")
+                        print(f"Detected objects: {detected_objects}")
+                        can_merge = areEmptyLanesUntil(outgoing_lane, detected_objects)
+                        print(f"Can merge: {can_merge}")
+
+                        if can_merge:
+                            merge_confirmation_counter += 1
+                        else:
+                            merge_confirmation_counter = 0
+
+                        print(f"Confirmations: {merge_confirmation_counter}/{required_merge_confirmations}")
+
+                        if merge_confirmation_counter >= required_merge_confirmations:
+                            merge_confirmation_counter = 0
+                            bot_state = get_next_state_and_set_leds(bot_state, leds)
+                            if use_p_turn_agent:
+                                turn_agent = TurnAgentPID(outgoing_lane, wheels)
+                            else:
+                                turn_agent = TurnAgent(outgoing_lane)
+                            print("Switched to turning...")
                 else:
                     bot_state = get_next_state_and_set_leds(bot_state, leds)
                     if use_p_turn_agent:
@@ -140,20 +164,6 @@ def main(camera, wheels, leds, stop_event, debug=None, debug_lock=None, cmd_queu
                         turn_agent = TurnAgent(outgoing_lane)
                     print("Switched to turning...")
                     continue
-
-                print(f"Can merge: {can_merge}")
-
-                if can_merge:
-                    time.sleep(0.5)
-                    can_merge = areEmptyLanesUntil(outgoing_lane, detected_objects)
-                    print(f"Can merge: {can_merge}")
-                    if can_merge:
-                        bot_state = get_next_state_and_set_leds(bot_state, leds)
-                        if use_p_turn_agent:
-                            turn_agent = TurnAgentPID(outgoing_lane, wheels)
-                        else:
-                            turn_agent = TurnAgent(outgoing_lane)
-                        print("Switched to turning...")
 
             elif bot_state == BotState.turning:
                 print("Calling turn_agent.compute_commands")

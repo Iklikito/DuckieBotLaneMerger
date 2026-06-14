@@ -40,3 +40,6 @@ start_in_manual_drive = True
 use_p_turn_agent = False
 
 color_coded_leds = False
+
+required_merge_confirmations = 5
+merge_check_interval_s = 2
