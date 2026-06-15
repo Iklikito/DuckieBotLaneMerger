@@ -98,6 +98,12 @@ def main(camera, wheels, leds, stop_event, debug=None, debug_lock=None, cmd_queu
             white_mask  = (mask_right * 255).astype(np.uint8)
             detected_objects = []
 
+            # Always run lane servoing for debug visualization
+            try:
+                lane_servoing_agent.compute_commands(frame_rgb)
+            except Exception:
+                pass
+
             # Manual drive overrides all FSM logic
             if manual_drive is not None:
                 wheels.set_wheels_speed(manual_drive['left'], manual_drive['right'])
@@ -108,7 +114,7 @@ def main(camera, wheels, leds, stop_event, debug=None, debug_lock=None, cmd_queu
                     yellow_mask=yellow_mask,
                     white_mask=white_mask,
                     detections=[],
-                    lane_debug=None,
+                    lane_debug=lane_servoing_agent.last_debug_info,
                 )
                 time.sleep(0.01)
                 continue

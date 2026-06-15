@@ -44,6 +44,7 @@ class ObjectDetector:
         self.img_size       = cfg.get('img_size',       416)
         self.conf_threshold = cfg.get('conf_threshold', 0.5)
         self.nms_threshold  = cfg.get('nms_threshold',  0.45)
+        self.min_area       = cfg.get('min_area',       800)
 
         self.model_path       = self._resolve_model_path(model_path)
         self.frame_count      = 0
@@ -246,14 +247,11 @@ class ObjectDetector:
             cls_id = int(cls_ids[i])
             score  = float(scores[i])
 
-            if score < 0.6:
-                continue
-
             xmin, ymin, xmax, ymax = bbox
             width = xmax - xmin
             height = ymax - ymin
             area = width*height
-            if area < 800:
+            if area < self.min_area:
                 continue
 
             detections.append((bbox, score, cls_id))
@@ -284,14 +282,14 @@ class ObjectDetector:
             cls_id = int(cls_ids[idx])
             score  = float(scores[idx])
 
-            if score < 0.6:
+            if score < self.conf_threshold:
                 continue
 
             xmin, ymin, xmax, ymax = bbox
             width = xmax - xmin
             height = ymax - ymin
             area = width*height
-            if area < 800:
+            if area < self.min_area:
                 continue
 
             detections.append((bbox, score, cls_id))

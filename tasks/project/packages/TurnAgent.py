@@ -34,6 +34,7 @@ class TurnAgent:
 
     def compute_commands(self, image: np.ndarray) -> Tuple[float, float, bool]:
         print("Entered turn_agent.compute_commands frame", self._frame)
+        print(self._turn_bias)
         self._frame += 1
 
         if self.turn == 'right':

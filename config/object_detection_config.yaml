@@ -1,3 +1,4 @@
 img_size: 416
-conf_threshold: 0.7
+conf_threshold: 0.6
 nms_threshold: 0.45
+min_area: 800

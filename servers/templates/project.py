@@ -575,6 +575,12 @@ document.addEventListener('keyup', e => {
     }
 });
 
+document.addEventListener('keydown', e => {
+    if (e.key === 'e' && !e.target.matches('input, textarea, select')) {
+        toggleManual();
+    }
+});
+
 /* ── Send command ── */
 function sendCommand() {
     const key   = document.getElementById('cmdKey').value.trim();
@@ -591,8 +597,12 @@ function loadOutgoingLane() {
     fetch('/outgoing_lane')
         .then(r => r.json())
         .then(data => {
-            document.getElementById('outgoingLaneSelect').value =
-                data.outgoing_lane === null ? 'null' : data.outgoing_lane;
+            const lane = data.outgoing_lane === null ? 'null' : data.outgoing_lane;
+            document.getElementById('outgoingLaneSelect').value = lane;
+            if (lane !== 'null') {
+                document.getElementById('turnDirSelect').value = lane;
+                loadTurnParams();
+            }
         });
 }
 
