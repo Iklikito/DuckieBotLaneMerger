@@ -1,3 +1,5 @@
+calibration_complete: false
+
 east:
   turn: right
   speed: 0.4
