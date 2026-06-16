@@ -90,6 +90,9 @@ def main(camera, wheels, leds, stop_event, debug=None, debug_lock=None, cmd_queu
                         if manual_drive is None and cmd.get('reset_to_convoy', False):
                             bot_state = get_next_state_and_set_leds(state=None, leds=leds)
                             waiting_for_red_line_to_disappear = False
+                            outgoing_lane = None
+                            merge_confirmation_counter = 0
+                            last_merge_check_time = 0
 
             # Always compute all masks fresh for the debug view
             red_mask = get_red_mask(frame_bgr)
