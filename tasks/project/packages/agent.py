@@ -140,7 +140,7 @@ def main(camera, wheels, leds, stop_event, debug=None, debug_lock=None, cmd_queu
                     wheels.set_wheels_speed(left, right)
 
             elif bot_state == BotState.waiting:
-                if has_to_wait_predetermined:
+                if has_to_wait_predetermined and outgoing_lane != AdjacentLane.east:
                     now = time.time()
                     per_check_interval = merge_check_interval_s / (required_merge_confirmations - 1) if required_merge_confirmations > 1 else 0
                     if now - last_merge_check_time >= per_check_interval:
