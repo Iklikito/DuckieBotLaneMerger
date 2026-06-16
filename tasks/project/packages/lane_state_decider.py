@@ -50,10 +50,3 @@ def areEmptyLanesUntil(outgoing_lane: AdjacentLane, detected_objects: List[Detec
     
     else:
         raise ValueError("Invalid outgoing lane for areEmptyLanesUntil")
-    
-#object_detector = ObjectDetector(config_path="config/object_detection_config.yaml", model_path="tasks/object_detection/models/best.onnx")
-
-#frame = cv2.imread("tasks/project/packages/images/image16.png")
-#frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-#detected_objects = object_detector.detect(frame)
-#print(areEmptyLanesUntil(AdjacentLane.west, frame, detected_objects))

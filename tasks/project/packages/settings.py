@@ -21,8 +21,8 @@ state_to_led_color = {
 
 debugging = True
 
-has_to_wait_predetermined = False # For testing. False if the bot doesn't need to yield
-outgoing_lane_predetermined = AdjacentLane.west # For testing. None if the bot need to determine it
+has_to_wait_predetermined = True # For testing. False if the bot doesn't need to yield
+outgoing_lane_predetermined = None # For testing. None if the bot need to determine it
 
 def _detect_robot_id():
     hostname = socket.gethostname()
@@ -43,3 +43,4 @@ color_coded_leds = False
 
 required_merge_confirmations = 5
 merge_check_interval_s = 2
+west_confirmations_required = 5

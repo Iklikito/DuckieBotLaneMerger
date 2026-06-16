@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 
-_UPPER_THRESHOLD_RED = 5000
+_UPPER_THRESHOLD_RED = 4600
 _LOWER_THRESHOLD_RED = 200
 
 _hsv_bounds = {

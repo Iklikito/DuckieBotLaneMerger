@@ -2,7 +2,7 @@ import numpy as np
 import cv2
 from typing import Tuple
 
-distance_measure_threshold = 25
+distance_measure_threshold = 40
 
 
 def get_distance_threshold() -> float:

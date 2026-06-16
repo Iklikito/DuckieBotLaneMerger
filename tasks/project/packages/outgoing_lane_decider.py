@@ -1,15 +1,14 @@
 import numpy as np
 import cv2
+from typing import List
 from tasks.project.packages.adjacent_lanes import AdjacentLane
-from tasks.project.packages.ObjectDetector import ObjectDetector
+from tasks.project.packages.ObjectDetector import ObjectDetector, Detection
 
-def decide_outgoing_lane(frame: np.ndarray, object_detector: ObjectDetector) -> AdjacentLane:
-    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    detected_objects = object_detector.detect(frame_rgb)
+def decide_outgoing_lane(detected_objects: List[Detection]) -> AdjacentLane:
     duck_counter = 0
 
     if detected_objects is None:
-        return AdjacentLane.east
+        return AdjacentLane.west
 
     for detected_object in detected_objects:
         bbox, score, cls_id = detected_object
@@ -17,11 +16,13 @@ def decide_outgoing_lane(frame: np.ndarray, object_detector: ObjectDetector) -> 
         if cls_id == 0:
             duck_counter += 1
 
+            duck_bbox = bbox
+
     if duck_counter == 0:
         return AdjacentLane.west
     
     elif duck_counter == 1:
-        xmin, ymin, xmax, ymax = bbox
+        xmin, ymin, xmax, ymax = duck_bbox
         xmid = (xmax + xmin)/2
 
         if xmid < 320:
@@ -30,4 +31,19 @@ def decide_outgoing_lane(frame: np.ndarray, object_detector: ObjectDetector) -> 
             return AdjacentLane.east
     
     else:
-        raise ValueError("Too many ducks")
+        raise ValueError("Too many ducks!")
+    
+def recheck_outgoing_lane(detected_objects: List[Detection], current_assumption: AdjacentLane) -> AdjacentLane:
+    new_assumption = decide_outgoing_lane(detected_objects)
+
+    if current_assumption == AdjacentLane.west:
+        return new_assumption
+    
+    elif new_assumption == AdjacentLane.west:
+        return current_assumption
+    
+    elif current_assumption == new_assumption:
+        return current_assumption
+    
+    else:
+        raise ValueError("Too many ducks or ducks have been moved!")

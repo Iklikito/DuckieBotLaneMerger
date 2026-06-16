@@ -6,7 +6,7 @@ from typing import Optional
 from tasks.project.packages.bot_state import BotState
 from tasks.project.packages.adjacent_lanes import AdjacentLane
 from tasks.project.packages.lane_state_decider import areEmptyLanesUntil
-from tasks.project.packages.outgoing_lane_decider import decide_outgoing_lane
+from tasks.project.packages.outgoing_lane_decider import decide_outgoing_lane, recheck_outgoing_lane
 from tasks.project.packages.is_in_front_decider import is_in_front, get_red_mask, has_passed_red_line
 from tasks.project.packages.convoy import convoy, calculate_distance_measure_to_leader
 from tasks.project.packages.detect_lane_markings import detect_lane_markings
@@ -126,7 +126,8 @@ def main(camera, wheels, leds, stop_event, debug=None, debug_lock=None, cmd_queu
                 if waiting_for_red_line_to_disappear and has_passed_red_line(frame_bgr):
                     bot_state = get_next_state_and_set_leds(bot_state, leds)
                     if _outgoing_lane_override is None:
-                        outgoing_lane = decide_outgoing_lane(frame_rgb, object_detector)
+                        detected_objects = object_detector.detect(frame_rgb) or []
+                        outgoing_lane = decide_outgoing_lane(detected_objects)
                     else:
                         outgoing_lane = _outgoing_lane_override
                     print(f"Outgoing lane: {outgoing_lane}")
@@ -140,8 +141,11 @@ def main(camera, wheels, leds, stop_event, debug=None, debug_lock=None, cmd_queu
                     now = time.time()
                     per_check_interval = merge_check_interval_s / (required_merge_confirmations - 1) if required_merge_confirmations > 1 else 0
                     if now - last_merge_check_time >= per_check_interval:
-                        last_merge_check_time = now
+                        print('Rechecking outgoing lane...')
                         detected_objects = object_detector.detect(frame_rgb) or []
+                        outgoing_lane = recheck_outgoing_lane(detected_objects, outgoing_lane)
+                        print(f'Current outgoing lane: {outgoing_lane}')
+                        last_merge_check_time = now
                         print("Waiting...")
                         print(f"Detected objects: {detected_objects}")
                         can_merge = areEmptyLanesUntil(outgoing_lane, detected_objects)
@@ -186,7 +190,7 @@ def main(camera, wheels, leds, stop_event, debug=None, debug_lock=None, cmd_queu
                     wheels.set_wheels_speed(0.0, 0.0)
 
             elif bot_state == BotState.finishing:
-                left, right = lane_servoing_agent.compute_commands(frame_rgb)
+                left, right = convoy(frame_rgb, lane_servoing_agent, use_lane_follower=True)
                 wheels.set_wheels_speed(left, right)
 
             else:
