@@ -7,6 +7,8 @@ import numpy as np
 import cv2
 from typing import List, Tuple
 
+from tasks.project.packages.FrameDictionary import FrameDictionary
+
 warnings.filterwarnings("ignore", category=FutureWarning)
 
 
@@ -200,8 +202,8 @@ class ObjectDetector:
         except Exception:
             return 0
 
-    def _preprocess(self, frame_rgb: np.ndarray) -> np.ndarray:
-        img = cv2.resize(frame_rgb, (self.img_size, self.img_size))
+    def _preprocess(self, frame: FrameDictionary) -> np.ndarray:
+        img = cv2.resize(frame.rgb, (self.img_size, self.img_size))
         img = img.astype(np.float32) / 255.0
         img = img.transpose(2, 0, 1)
         return np.ascontiguousarray(img)
@@ -296,7 +298,7 @@ class ObjectDetector:
 
         return detections
 
-    def detect(self, frame_rgb: np.ndarray) -> List[Detection]:
+    def detect(self, frame: FrameDictionary) -> List[Detection]:
         self.frame_count += 1
 
         if not self.model_loaded:
@@ -306,9 +308,9 @@ class ObjectDetector:
         if skip > 0 and (self.frame_count % (skip + 1)) != 0:
             return None
 
-        orig_h, orig_w = frame_rgb.shape[:2]
+        orig_h, orig_w = frame.rgb.shape[:2]
         try:
-            raw = self._infer(frame_rgb)
+            raw = self._infer(frame)
         except Exception as e:
             print(f"[ObjectDetection] Inference error: {e}")
             return None
@@ -318,11 +320,11 @@ class ObjectDetector:
 
         return self._postprocess(raw, orig_w, orig_h)
 
-    def _infer(self, frame_rgb: np.ndarray) -> np.ndarray:
+    def _infer(self, frame: FrameDictionary) -> np.ndarray:
         if self._backend == 'trt':
             import ctypes
             H2D, D2H = 1, 2
-            inp = self._preprocess(frame_rgb).flatten()
+            inp = self._preprocess(frame).flatten()
             np.copyto(self._trt_host_in[0], inp)
             self._cudart.cudaMemcpy(
                 ctypes.c_void_p(self._trt_dev_ptrs[0]),
@@ -339,12 +341,12 @@ class ObjectDetector:
             return out.reshape(self._trt_out_shape)
 
         elif self._backend == 'ort':
-            inp = self._preprocess(frame_rgb)[np.newaxis]
+            inp = self._preprocess(frame)[np.newaxis]
             return self.session.run([self._output_name], {self._input_name: inp})[0]
 
         else:
             blob = cv2.dnn.blobFromImage(
-                frame_rgb, 1 / 255.0, (self.img_size, self.img_size), swapRB=False
+                frame.rgb, 1 / 255.0, (self.img_size, self.img_size), swapRB=False
             )
             self.net.setInput(blob)
             return self.net.forward()

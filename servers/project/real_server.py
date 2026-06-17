@@ -22,15 +22,16 @@ from launcher.ports import find_available_port
 from servers.common import make_frame_generator, shutdown_cleanup, suppress_http_logs
 from servers.templates.project import get_template
 
-import tasks.project.packages.agent as agent_module
+from tasks.project.packages import agent as agent_module
+from tasks.project.packages import MergeAgent as merge_agent_module
 from tasks.project.packages.is_in_front_decider import get_hsv_bounds, set_hsv_bounds
 import tasks.project.packages.detect_lane_markings as lane_markings_module
 from tasks.project.packages.ObjectDetector import ObjectDetector
-from tasks.project.packages.TurnAgent import _get_config_path as get_turn_agent_config_path
-from tasks.project.packages.TurnAgentPID import _get_config_path as get_turn_agent_pid_config_path
-from tasks.project.packages.convoy import get_distance_threshold, set_distance_threshold
+from tasks.project.packages.TurnAgents.TurnAgentOpenLoop import _get_config_path as get_turn_agent_config_path
+from tasks.project.packages.TurnAgents.TurnAgentPID import _get_config_path as get_turn_agent_pid_config_path
 from tasks.project.packages.LaneServoingAgent import get_lane_servoing_params, set_lane_servoing_params
-from tasks.project.packages.settings import ROBOT_ID, use_p_turn_agent
+from tasks.project.packages.settings import ROBOT_ID, use_pid_turn_agent
+from tasks.project.packages.ConvoyAgents.ConvoyAgentBinary import get_distance_threshold, set_distance_threshold
 
 app        = Flask(__name__)
 camera     = None
@@ -77,7 +78,7 @@ def _draw_lane_servoing_overlay(img: np.ndarray, yellow_xs, white_xs, slice_ys) 
 
 generate_frames = make_frame_generator(lambda: camera, _visualize, quality=70, rgb=False)
 
-HTML_TEMPLATE = get_template(title='Project', subtitle='Real Duckiebot', use_p_turn_agent=use_p_turn_agent)
+HTML_TEMPLATE = get_template(title='Project', subtitle='Real Duckiebot', use_pid_turn_agent=use_pid_turn_agent)
 
 
 @app.route('/')
@@ -318,13 +319,13 @@ def turn_config_pid_post():
 
 @app.route('/outgoing_lane', methods=['GET'])
 def outgoing_lane_get():
-    return jsonify({'outgoing_lane': agent_module.get_outgoing_lane()})
+    return jsonify({'outgoing_lane': merge_agent_module.get_outgoing_lane()})
 
 @app.route('/outgoing_lane', methods=['POST'])
 def outgoing_lane_post():
     data = request.get_json(force=True) or {}
     val  = data.get('outgoing_lane')   # 'north'/'east'/'south'/'west' or null
-    agent_module.set_outgoing_lane(val)
+    merge_agent_module.set_outgoing_lane(val)
     return jsonify({'status': 'ok'})
 
 

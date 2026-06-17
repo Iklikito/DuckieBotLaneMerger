@@ -1,10 +1,6 @@
-import numpy as np
 from typing import List
-import cv2
 from tasks.project.packages.adjacent_lanes import AdjacentLane
 from tasks.project.packages.ObjectDetector import Detection
-#from adjacent_lanes import AdjacentLane
-#from ObjectDetector import ObjectDetector, Detection
 
 def isEmptyLaneNorth(detected_objects: List[Detection]) -> bool:
     for detected_object in detected_objects:

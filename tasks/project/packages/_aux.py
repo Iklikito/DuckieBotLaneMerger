@@ -1,4 +1,4 @@
-import socket
+import time
 
 from tasks.project.packages.settings import state_to_led_color, debugging, color_coded_leds
 from tasks.project.packages.bot_state import BotState
@@ -56,7 +56,7 @@ def get_next_state(state: BotState) -> BotState:
 def get_state_entrance_console_message(state: BotState) -> str:
     return state_to_state_entrance_console_message[state]
 
-def get_next_state_and_set_leds(state: BotState, leds) -> BotState:
+def get_next_state_and_set_leds_if_possible(state: BotState, leds) -> BotState:
     next_state = get_next_state(state)
     next_led_color = state_to_led_color[next_state]
     if color_coded_leds:
@@ -73,3 +73,10 @@ def get_turn_agent_config_path(bot_name):
         return 'config/turn_agent_config.yaml'
     else:
         return 'config/turn_agent_config.' + bot_name.name + '.yaml'
+    
+def debug_print(message, debugging=False):
+    if not debugging:
+        return
+    
+    timestamp = time.strftime('%H:%M:%S', time.localtime()) + f'.{int(time.time() * 1000) % 1000:03d}'
+    print(f'[{timestamp}] {message}')

@@ -1,21 +1,15 @@
-import os
 import yaml
 import numpy as np
-import cv2
 from collections import deque
 from typing import Tuple, List
 
 from tasks.project.packages.detect_lane_markings import detect_lane_markings
 from tasks.project.packages.settings import ROBOT_ID
-#from tasks.visual_lane_servoing.packages.visual_servoing_activity import detect_lane_markings
+from tasks.project.packages.FrameDictionary import FrameDictionary
 
 def _get_config_path(robot_id):
     folder = 'default' if robot_id.name == 'simulation' else robot_id.name
     return f'config/{folder}/lane_servoing_config.yaml'
-
-#_CONFIG_FILE = os.path.normpath(os.path.join(
-#    os.path.dirname(__file__), '..', '..', '..', 'config', 'lane_servoing_config.yaml'
-#))
 
 _CONFIG_FILE = _get_config_path(ROBOT_ID)
 
@@ -132,6 +126,7 @@ class LaneServoingAgent:
         self._left_history      = deque(maxlen=3)
         self._right_history     = deque(maxlen=3)
         self.last_debug_info    = self._empty_debug_info(480, 640)
+        self._last_commands     = (0.0, 0.0)
 
     def _calculate_error(self, yellow_xs, white_xs, left_det, right_det, w):
         offset = (self.alpha - 0.5) * 2 * self._lane_half_width
@@ -189,12 +184,11 @@ class LaneServoingAgent:
         return (sum(self._left_history)  / len(self._left_history),
                 sum(self._right_history) / len(self._right_history))
 
-    def compute_commands(self, image: np.ndarray) -> Tuple[float, float]:
+    def process(self, frame: FrameDictionary) -> None:
         self.frame_count += 1
-        bgr = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
         try:
-            mask_left, mask_right = detect_lane_markings(bgr)
+            mask_left, mask_right = detect_lane_markings(frame)
         except Exception as e:
             print(f"[Agent] detect_lane_markings error: {e}")
             return 0.0, 0.0
@@ -208,7 +202,7 @@ class LaneServoingAgent:
 
         combined = np.clip(mask_left + mask_right, 0, 1)
         self.last_debug_info = {
-            'roi':               image,
+            'roi':               frame,
             'lane_mask':         (combined * 255).astype(np.uint8),
             'white_mask':        mask_w,
             'yellow_mask':       mask_y,
@@ -243,19 +237,27 @@ class LaneServoingAgent:
             'curve_dir': curve_dir,
         })
 
-        return left, right
+        self._last_commands = (left, right)
 
-    def step(self, image: np.ndarray, wheels_driver) -> Tuple[float, float]:
-        left, right = self.compute_commands(image)
+    def get_commands(self) -> Tuple[float, float]:
+        return self._last_commands
+
+    def compute_commands(self, frame: FrameDictionary) -> Tuple[float, float]:
+        """Backward-compatibility wrapper."""
+        self.process(frame)
+        return self.get_commands()
+
+    def step(self, frame: FrameDictionary, wheels_driver) -> Tuple[float, float]:
+        left, right = self.compute_commands(frame)
         wheels_driver.set_wheels_speed(left, right)
         return left, right
 
-    def get_debug_info(self, image: np.ndarray) -> dict:
+    def get_debug_info(self) -> dict:
         return self.last_debug_info
 
     def _empty_debug_info(self, h, w):
         return {
-            'roi':               np.zeros((h, w, 3), dtype=np.uint8),
+            'roi':               FrameDictionary(np.zeros((h, w, 3), dtype=np.uint8)),
             'lane_mask':         np.zeros((h, w),    dtype=np.uint8),
             'white_mask':        np.zeros((h, w),    dtype=np.uint8),
             'yellow_mask':       np.zeros((h, w),    dtype=np.uint8),

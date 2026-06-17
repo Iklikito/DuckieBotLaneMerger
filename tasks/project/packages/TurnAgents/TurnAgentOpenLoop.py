@@ -2,10 +2,12 @@ import os
 import time
 import yaml
 import numpy as np
+
 from typing import Tuple
 from tasks.project.packages.adjacent_lanes import AdjacentLane
 from tasks.project.packages.detect_lane_markings import detect_lane_markings
 from tasks.project.packages.settings import ROBOT_ID
+from tasks.project.packages.FrameDictionary import FrameDictionary
 
 _REENTRY_THRESHOLD = 300
 
@@ -15,7 +17,7 @@ def _get_config_path(robot_id):
     return f'config/{folder}/turn_agent_config.yaml'
 
 
-class TurnAgent:
+class TurnAgentOpenLoop:
     def __init__(self,
                  outgoing_lane: AdjacentLane = AdjacentLane.north):
         with open(_get_config_path(ROBOT_ID)) as f:
@@ -32,7 +34,7 @@ class TurnAgent:
         self._turn_bias       = float(dir_cfg.get('turn_bias', 0.1))
         self.turn             = dir_cfg.get('turn', 'left')
 
-    def compute_commands(self, image: np.ndarray) -> Tuple[float, float, bool]:
+    def compute_commands(self, frame: FrameDictionary) -> Tuple[float, float, bool]:
         print("Entered turn_agent.compute_commands frame", self._frame)
         self._frame += 1
 
@@ -47,14 +49,14 @@ class TurnAgent:
             return left, right, False
 
         print("Calling _check_reentry")
-        reentered = self._check_reentry(image)
+        reentered = self._check_reentry(frame)
         return left, right, reentered
 
-    def _check_reentry(self, image: np.ndarray) -> bool:
+    def _check_reentry(self, frame: FrameDictionary) -> bool:
         print("Entered _check_reentry")
-        mask_left, mask_right = detect_lane_markings(image)
+        mask_left, mask_right = detect_lane_markings(frame)
 
-        h = image.shape[0]
+        h = frame.rgb.shape[0]
         roi_start = int(h * 0.75)
 
         yellow_pixels = int(np.count_nonzero(mask_left[roi_start:, :]))

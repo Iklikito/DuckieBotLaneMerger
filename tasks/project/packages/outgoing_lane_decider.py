@@ -1,5 +1,3 @@
-import numpy as np
-import cv2
 from typing import List
 from tasks.project.packages.adjacent_lanes import AdjacentLane
 from tasks.project.packages.ObjectDetector import ObjectDetector, Detection

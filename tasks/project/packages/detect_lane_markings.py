@@ -1,16 +1,15 @@
 from typing import Tuple
-import os
 import numpy as np
 import cv2
 import yaml
 
 from tasks.project.packages.settings import ROBOT_ID
+from tasks.project.packages.FrameDictionary import FrameDictionary
 
 def _get_config_path(robot_id):
     folder = 'default' if robot_id.name == 'simulation' else robot_id.name
     return f'config/{folder}/lane_servoing_hsv_config.yaml'
 
-#_HSV_FILE = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'config', 'lane_servoing_hsv_config.yaml')
 _HSV_FILE = _get_config_path(ROBOT_ID)
 try:
     with open(_HSV_FILE) as _f:
@@ -24,11 +23,11 @@ _yellow_upper = np.array([_h.get('yellow_upper_h', 0),  _h.get('yellow_upper_s',
 _white_lower = np.array([_h.get('white_lower_h', 0),   _h.get('white_lower_s', 0), _h.get('white_lower_v', 0)])
 _white_upper = np.array([_h.get('white_upper_h', 0), _h.get('white_upper_s', 0), _h.get('white_upper_v', 0)])
 
-def detect_lane_markings(image: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-    h, w = image.shape[:2]
+def detect_lane_markings(frame: FrameDictionary) -> Tuple[np.ndarray, np.ndarray]:
+    h, w = frame.bgr.shape[:2]
 
     # Noise reduction
-    blurred = cv2.GaussianBlur(image, (7, 7), 0)
+    blurred = cv2.GaussianBlur(frame.bgr, (7, 7), 0)
 
     # HSV conversion
     hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)

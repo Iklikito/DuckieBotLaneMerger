@@ -37,7 +37,9 @@ ROBOT_ID = _detect_robot_id()
 
 start_in_manual_drive = True
 
-use_p_turn_agent = False
+use_pid_turn_agent = False
+
+use_pid_convoy_agent = False
 
 color_coded_leds = False
 

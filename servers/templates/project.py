@@ -799,8 +799,8 @@ loadTurnParams();
 '''
 
 
-def get_template(title='Project', subtitle='Real Duckiebot', use_p_turn_agent=False):
-    js_globals = f'const USE_P_TURN_AGENT = {"true" if use_p_turn_agent else "false"};\n'
+def get_template(title='Project', subtitle='Real Duckiebot', use_pid_turn_agent=False):
+    js_globals = f'const USE_PID_TURN_AGENT = {"true" if use_pid_turn_agent else "false"};\n'
     return render_template(
         title=title,
         subtitle=subtitle,
