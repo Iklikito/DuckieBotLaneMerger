@@ -67,12 +67,6 @@ def get_next_state_and_set_leds_if_possible(state: BotState, leds) -> BotState:
         print(console_message)
     
     return next_state
-
-def get_turn_agent_config_path(bot_name):
-    if bot_name == BotName.simulation:
-        return 'config/turn_agent_config.yaml'
-    else:
-        return 'config/turn_agent_config.' + bot_name.name + '.yaml'
     
 def debug_print(message, debugging=False):
     if not debugging:

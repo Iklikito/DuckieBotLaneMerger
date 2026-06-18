@@ -30,6 +30,7 @@ from tasks.project.packages.ObjectDetector import ObjectDetector
 from tasks.project.packages.TurnAgents.TurnAgentOpenLoop import _get_config_path as get_turn_agent_config_path
 from tasks.project.packages.TurnAgents.TurnAgentPID import _get_config_path as get_turn_agent_pid_config_path
 from tasks.project.packages.LaneServoingAgent import get_lane_servoing_params, set_lane_servoing_params
+from tasks.project.packages.ObjectDetector import get_detection_params, set_detection_params
 from tasks.project.packages.settings import ROBOT_ID, use_pid_turn_agent
 from tasks.project.packages.ConvoyAgents.ConvoyAgentBinary import get_distance_threshold, set_distance_threshold
 
@@ -286,6 +287,17 @@ def lane_servoing_params_post():
     data = request.get_json(force=True) or {}
     set_lane_servoing_params(data)
     return jsonify({'status': 'ok', **get_lane_servoing_params()})
+
+
+@app.route('/detection_params', methods=['GET'])
+def detection_params_get():
+    return jsonify(get_detection_params())
+
+@app.route('/detection_params', methods=['POST'])
+def detection_params_post():
+    data = request.get_json(force=True) or {}
+    set_detection_params(data)
+    return jsonify({'status': 'ok', **get_detection_params()})
 
 
 @app.route('/turn_config_pid', methods=['GET'])

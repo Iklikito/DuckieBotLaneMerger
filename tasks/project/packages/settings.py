@@ -45,4 +45,3 @@ color_coded_leds = False
 
 required_merge_confirmations = 5
 merge_check_interval_s = 2
-west_confirmations_required = 5

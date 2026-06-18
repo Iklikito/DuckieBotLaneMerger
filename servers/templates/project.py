@@ -215,6 +215,17 @@ _CONTENT = '''
                 <div id="turnParamsStatus" class="status" style="margin-top:6px;"></div>
             </div>
 
+            <!-- Object detection params card -->
+            <div class="card">
+                <div class="card-header">Object Detection Parameters</div>
+                <div id="detectionParams" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;"></div>
+                <div style="display:flex;gap:6px;margin-top:4px;">
+                    <button class="button" onclick="applyDetectionParams()" style="flex:1;">Apply</button>
+                    <button class="button" onclick="loadDetectionParams()" style="flex:1;background:var(--bg-sidebar);">Reload</button>
+                </div>
+                <div id="detectionParamsStatus" class="status" style="margin-top:6px;"></div>
+            </div>
+
             <!-- Send command card -->
             <div class="card">
                 <div class="card-header">Send Command</div>
@@ -782,6 +793,55 @@ function applyTurnParams() {
         .catch(e => showStatus('turnParamsStatus', 'Error: ' + e, 'error'));
 }
 
+/* ── Object detection parameters ── */
+const DETECTION_PARAMS = [
+    { key: 'conf_threshold', label: 'Conf threshold', min: 0, max: 1,     step: 0.01 },
+    { key: 'nms_threshold',  label: 'NMS threshold',  min: 0, max: 1,     step: 0.01 },
+    { key: 'min_area',       label: 'Min area',       min: 0, max: 10000, step: 10   },
+    { key: 'min_area_duck',  label: 'Min area duck',  min: 0, max: 10000, step: 10   },
+    { key: 'min_area_bot',   label: 'Min area bot',   min: 0, max: 10000, step: 10   },
+];
+
+function buildDetectionParamRows(data) {
+    const container = document.getElementById('detectionParams');
+    container.innerHTML = '';
+    DETECTION_PARAMS.forEach(p => {
+        const val = data[p.key] !== undefined ? data[p.key] : '';
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex;align-items:center;gap:8px;';
+        row.innerHTML = `
+            <span class="hsv-label" style="width:140px;font-size:11px;white-space:nowrap;">${p.label}</span>
+            <input type="range" class="slider" id="det_slider_${p.key}"
+                   min="${p.min}" max="${p.max}" step="${p.step}" value="${val}" style="flex:1;"
+                   oninput="document.getElementById('det_num_${p.key}').value=this.value">
+            <input type="number" class="input-box" id="det_num_${p.key}"
+                   min="${p.min}" max="${p.max}" step="${p.step}" value="${val}" style="width:70px;"
+                   oninput="document.getElementById('det_slider_${p.key}').value=this.value">`;
+        container.appendChild(row);
+    });
+}
+
+function loadDetectionParams() {
+    fetch('/detection_params')
+        .then(r => r.json())
+        .then(data => buildDetectionParamRows(data))
+        .catch(() => showStatus('detectionParamsStatus', 'Failed to load', 'error'));
+}
+
+function applyDetectionParams() {
+    const payload = {};
+    DETECTION_PARAMS.forEach(p => {
+        const el = document.getElementById('det_num_' + p.key);
+        if (el && el.value !== '') payload[p.key] = parseFloat(el.value);
+    });
+    postJSON('/detection_params', payload)
+        .then(r => {
+            showStatus('detectionParamsStatus', 'Applied', 'success');
+            buildDetectionParamRows(r);
+        })
+        .catch(e => showStatus('detectionParamsStatus', 'Error: ' + e, 'error'));
+}
+
 /* ── Boot ── */
 buildHsvSliders();
 loadHsvBounds();
@@ -796,6 +856,7 @@ loadOutgoingLane();
 loadDistThreshold();
 loadLaneServoingParams();
 loadTurnParams();
+loadDetectionParams();
 '''
 
 

@@ -1,25 +1,25 @@
 import time
 
-from tasks.project.packages.adjacent_lanes               import AdjacentLane
-from tasks.project.packages.bot_state                    import BotState
+from tasks.project.packages.adjacent_lanes                 import AdjacentLane
+from tasks.project.packages.bot_state                      import BotState
 from tasks.project.packages.ConvoyAgents.ConvoyAgentBinary import ConvoyAgentBinary
-from tasks.project.packages.ConvoyAgents.ConvoyAgentPID import ConvoyAgentPID
+from tasks.project.packages.ConvoyAgents.ConvoyAgentPID    import ConvoyAgentPID
 from tasks.project.packages.ConvoyAgents.distance_measurer import calculate_distance_measure_to_leader
-from tasks.project.packages.detect_lane_markings         import detect_lane_markings
-from tasks.project.packages.is_in_front_decider          import is_in_front, get_red_mask, has_passed_red_line
-from tasks.project.packages.lane_state_decider           import areEmptyLanesUntil
-from tasks.project.packages.LaneServoingAgent            import LaneServoingAgent, register_live_agent
-from tasks.project.packages.ObjectDetector               import ObjectDetector
-from tasks.project.packages.outgoing_lane_decider        import decide_outgoing_lane, recheck_outgoing_lane
-from tasks.project.packages.TurnAgents.TurnAgentOpenLoop import TurnAgentOpenLoop
-from tasks.project.packages.TurnAgents.TurnAgentPID      import TurnAgentPID
-from tasks.project.packages.FrameDictionary              import FrameDictionary
-from tasks.project.packages.settings                     import (
+from tasks.project.packages.detect_lane_markings           import detect_lane_markings
+from tasks.project.packages.is_in_front_decider            import is_in_front, get_red_mask, has_passed_red_line
+from tasks.project.packages.lane_state_decider             import areEmptyLanesUntil
+from tasks.project.packages.LaneServoingAgent              import LaneServoingAgent, register_live_agent
+from tasks.project.packages.ObjectDetector                 import ObjectDetector, register_live_detector
+from tasks.project.packages.outgoing_lane_decider          import decide_outgoing_lane, recheck_outgoing_lane
+from tasks.project.packages.TurnAgents.TurnAgentOpenLoop   import TurnAgentOpenLoop
+from tasks.project.packages.TurnAgents.TurnAgentPID        import TurnAgentPID
+from tasks.project.packages.FrameDictionary                import FrameDictionary
+from tasks.project.packages.settings                       import (
     color_coded_leds, debugging, has_to_wait_predetermined, merge_check_interval_s,
     outgoing_lane_predetermined, required_merge_confirmations, ROBOT_ID,
     start_in_manual_drive, use_pid_turn_agent, use_pid_convoy_agent,
 )
-from tasks.project.packages._aux                         import (
+from tasks.project.packages._aux                           import (
     debug_print, get_next_state,
     get_state_entrance_console_message, set_front_leds, state_to_led_color,
 )
@@ -118,33 +118,30 @@ class MergeAgent:
             self.wheels.set_wheels_speed(left, right)
 
     def _handle_waiting(self):
-        if has_to_wait_predetermined and self.outgoing_lane != AdjacentLane.east:
-            now = time.time()
-            per_check_interval = (
-                merge_check_interval_s / (required_merge_confirmations - 1)
-                if required_merge_confirmations > 1 else 0
-            )
-            if now - self.last_merge_check_time >= per_check_interval:
-                self.last_merge_check_time = now
-                detected_objects = self.object_detector.detect(self.frame) or []
-
-                self.outgoing_lane = recheck_outgoing_lane(detected_objects, self.outgoing_lane)
-                debug_print(f"Outgoing lane: {self.outgoing_lane}", debugging)
-
-                can_merge = areEmptyLanesUntil(self.outgoing_lane, detected_objects)
-                debug_print(f"Can merge: {can_merge}", debugging)
-
-                if can_merge:
-                    self.merge_confirmation_counter += 1
-                else:
-                    self.merge_confirmation_counter = 0
-
-                debug_print(f"Confirmations: {self.merge_confirmation_counter}/{required_merge_confirmations}", debugging)
-
-                if self.merge_confirmation_counter >= required_merge_confirmations:
-                    self._transition_to_next()
-        else:
+        if not has_to_wait_predetermined or self.outgoing_lane == AdjacentLane.east:
             self._transition_to_next()
+            return
+
+        now = time.time()
+        per_check_interval = (
+            merge_check_interval_s / (required_merge_confirmations - 1)
+            if required_merge_confirmations > 1 else 0
+        )
+        if now - self.last_merge_check_time >= per_check_interval:
+            self.last_merge_check_time = now
+            detected_objects = self.object_detector.detect(self.frame) or []
+
+            self.outgoing_lane = recheck_outgoing_lane(detected_objects, current_assumption=self.outgoing_lane)
+            debug_print(f"Outgoing lane: {self.outgoing_lane}", debugging)
+
+            can_merge = areEmptyLanesUntil(self.outgoing_lane, detected_objects)
+            debug_print(f"Can merge: {can_merge}", debugging)
+
+            self._update_merge_confirmation_counter(can_merge)
+            debug_print(f"Confirmations: {self.merge_confirmation_counter}/{required_merge_confirmations}", debugging)
+
+            if self.merge_confirmation_counter >= required_merge_confirmations:
+                self._transition_to_next()
 
     def _handle_turning(self):
         left, right, reentered = self.turn_agent.compute_commands(self.frame)
@@ -162,7 +159,6 @@ class MergeAgent:
     # ── State transitions ─────────────────────────────────────────────────────
 
     def _transition_to_next(self):
-        if self.state == BotState.waiting: return # REMOVE LATER
         self.state = get_next_state(self.state)
         if color_coded_leds:
             set_front_leds(self.leds, state_to_led_color[self.state])
@@ -211,6 +207,7 @@ class MergeAgent:
             while not self.object_detector.model_loaded:
                 time.sleep(1)
                 debug_print("Waiting for model to load...", debugging)
+            register_live_detector(self.object_detector)
             debug_print("Object detector loaded.", debugging)
 
     def _initialize_convoy_agent(self):
@@ -223,6 +220,9 @@ class MergeAgent:
             return False
         self.frame = FrameDictionary(frame_bgr)
         return True
+
+    def _update_merge_confirmation_counter(self, can_merge):
+        self.merge_confirmation_counter = self.merge_confirmation_counter + 1 if can_merge else 0
 
     def _drain_commands(self):
         if self.cmd_queue is None:

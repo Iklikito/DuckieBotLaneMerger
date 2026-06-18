@@ -23,6 +23,26 @@ CLASS_COLORS = {0: (0, 215, 255), 1: (180, 100, 220), 2: (50, 205, 50)}
 
 Detection = Tuple[Tuple[int, int, int, int], float, int]
 
+_DETECTION_PARAM_KEYS = ['conf_threshold', 'nms_threshold', 'min_area', 'min_area_duck', 'min_area_bot']
+
+_live_detector = None
+
+def register_live_detector(detector):
+    global _live_detector
+    _live_detector = detector
+
+def get_detection_params() -> dict:
+    if _live_detector is None:
+        return {}
+    return {k: getattr(_live_detector, k) for k in _DETECTION_PARAM_KEYS}
+
+def set_detection_params(params: dict):
+    if _live_detector is None:
+        return
+    for k, v in params.items():
+        if k in _DETECTION_PARAM_KEYS:
+            setattr(_live_detector, k, float(v))
+
 
 def _xywh2xyxy(cx, cy, w, h, model_size, img_w, img_h):
     sx = img_w / model_size
@@ -43,10 +63,12 @@ class ObjectDetector:
         except Exception:
             cfg = {}
 
-        self.img_size       = cfg.get('img_size',       416)
+        self.img_size       = cfg.get('img_size'      , 416)
         self.conf_threshold = cfg.get('conf_threshold', 0.5)
-        self.nms_threshold  = cfg.get('nms_threshold',  0.45)
-        self.min_area       = cfg.get('min_area',       800)
+        self.nms_threshold  = cfg.get('nms_threshold' , 0.45)
+        self.min_area       = cfg.get('min_area'      , 800)
+        self.min_area_duck  = cfg.get('min_area_duck' , 800)
+        self.min_area_bot   = cfg.get('min_area_bot'  , 800)
 
         self.model_path       = self._resolve_model_path(model_path)
         self.frame_count      = 0
@@ -254,6 +276,12 @@ class ObjectDetector:
             height = ymax - ymin
             area = width*height
             if area < self.min_area:
+                continue
+
+            if cls_id == 0 and area < self.min_area_duck:
+                continue
+
+            if cls_id == 1 and area < self.min_area_bot:
                 continue
 
             detections.append((bbox, score, cls_id))
