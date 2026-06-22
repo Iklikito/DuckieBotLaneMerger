@@ -7,7 +7,7 @@ from tasks.project.packages.ConvoyAgents.ConvoyAgentPID    import ConvoyAgentPID
 from tasks.project.packages.ConvoyAgents.distance_measurer import calculate_distance_measure_to_leader
 from tasks.project.packages.detect_lane_markings           import detect_lane_markings
 from tasks.project.packages.is_in_front_decider            import is_in_front, get_red_mask, has_passed_red_line
-from tasks.project.packages.lane_state_decider             import areEmptyLanesUntil
+from tasks.project.packages.lane_state_decider             import isEmptyLaneEast, isEmptyLaneNorth
 from tasks.project.packages.LaneServoingAgent              import LaneServoingAgent, register_live_agent
 from tasks.project.packages.ObjectDetector                 import ObjectDetector, register_live_detector
 from tasks.project.packages.outgoing_lane_decider          import decide_outgoing_lane, recheck_outgoing_lane
@@ -134,13 +134,11 @@ class MergeAgent:
             self.outgoing_lane = recheck_outgoing_lane(detected_objects, current_assumption=self.outgoing_lane)
             debug_print(f"Outgoing lane: {self.outgoing_lane}", debugging)
 
-            can_merge = areEmptyLanesUntil(self.outgoing_lane, detected_objects)
-            debug_print(f"Can merge: {can_merge}", debugging)
+            self._update_merge_confirmation_counters(detected_objects)
+            debug_print(f"Confirmations west: {self.merge_confirmation_counter_west}/{required_merge_confirmations}", debugging)
+            debug_print(f"Confirmations north: {self.merge_confirmation_counter_north}/{required_merge_confirmations}", debugging)
 
-            self._update_merge_confirmation_counter(can_merge)
-            debug_print(f"Confirmations: {self.merge_confirmation_counter}/{required_merge_confirmations}", debugging)
-
-            if self.merge_confirmation_counter >= required_merge_confirmations:
+            if self._merge_confirmations_reached():
                 self._transition_to_next()
 
     def _handle_turning(self):
@@ -177,8 +175,9 @@ class MergeAgent:
         self.waiting_for_red_line_to_disappear = False
 
     def _enter_waiting(self):
-        self.merge_confirmation_counter = 0
-        self.last_merge_check_time      = 0
+        self.merge_confirmation_counter_west  = 0
+        self.merge_confirmation_counter_north = 0
+        self.last_merge_check_time            = 0
 
     def _enter_turning(self):
         if use_pid_turn_agent:
@@ -221,8 +220,28 @@ class MergeAgent:
         self.frame = FrameDictionary(frame_bgr)
         return True
 
-    def _update_merge_confirmation_counter(self, can_merge):
-        self.merge_confirmation_counter = self.merge_confirmation_counter + 1 if can_merge else 0
+    def _update_merge_confirmation_counters(self, detected_objects):
+        east_clear  = isEmptyLaneEast(detected_objects)
+        north_clear = isEmptyLaneNorth(detected_objects)
+
+        if east_clear and north_clear:
+            self.merge_confirmation_counter_west  += 1
+        else:
+            self.merge_confirmation_counter_west   = 0
+
+        if east_clear:
+            self.merge_confirmation_counter_north += 1
+        else:
+            self.merge_confirmation_counter_north  = 0
+
+    def _merge_confirmations_reached(self) -> bool:
+        if self.outgoing_lane == AdjacentLane.west:
+            return self.merge_confirmation_counter_west  >= required_merge_confirmations
+        elif self.outgoing_lane == AdjacentLane.north:
+            return self.merge_confirmation_counter_north >= required_merge_confirmations
+        elif self.outgoing_lane == AdjacentLane.east:
+            return True
+        raise ValueError(f"_merge_confirmations_reached cannot handle {self.outgoing_lane}")
 
     def _drain_commands(self):
         if self.cmd_queue is None:
