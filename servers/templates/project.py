@@ -197,15 +197,17 @@ _CONTENT = '''
             <div class="card">
                 <div class="card-header">Turn Agent Parameters</div>
                 <div style="margin-bottom:8px;">
-                    <select id="turnDirSelect" style="padding:6px 8px;background:var(--bg-sidebar);
+                    <select id="outgoingLaneSelect" style="padding:6px 8px;background:var(--bg-sidebar);
                             border:1px solid var(--border-color);border-radius:4px;
                             color:var(--text-primary);font-size:13px;width:100%;"
-                            onchange="loadTurnParams()">
+                            onchange="onLaneSelectChange()">
+                        <option value="null">None (auto-detect)</option>
                         <option value="north">North</option>
                         <option value="east">East</option>
-                        <option value="west">West</option>
                         <option value="south">South</option>
+                        <option value="west">West</option>
                     </select>
+                    <div id="outgoingLaneStatus" class="status" style="margin-top:6px;"></div>
                 </div>
                 <div id="turnAgentParams" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;"></div>
                 <div style="display:flex;gap:6px;margin-top:4px;">
@@ -244,23 +246,7 @@ _CONTENT = '''
                     <div id="cmdStatus" class="status"></div>
                 </div>
             </div>
-            <!-- Outgoing lane card -->
-            <div class="card">
-                <div class="card-header">Outgoing Lane</div>
-                <div style="display:flex;flex-direction:column;gap:8px;">
-                    <select id="outgoingLaneSelect" style="padding:6px 8px;background:var(--bg-sidebar);
-                            border:1px solid var(--border-color);border-radius:4px;
-                            color:var(--text-primary);font-size:13px;">
-                        <option value="null">None (auto-detect)</option>
-                        <option value="north">North</option>
-                        <option value="east">East</option>
-                        <option value="south">South</option>
-                        <option value="west">West</option>
-                    </select>
-                    <button class="button" onclick="applyOutgoingLane()">Apply</button>
-                    <div id="outgoingLaneStatus" class="status"></div>
-                </div>
-            </div>
+
 
         </div>
     </div>
@@ -604,26 +590,27 @@ function sendCommand() {
 }
 
 /* ── Outgoing lane ── */
+function onLaneSelectChange() {
+    const raw = document.getElementById('outgoingLaneSelect').value;
+    const val = raw === 'null' ? null : raw;
+    postJSON('/outgoing_lane', { outgoing_lane: val })
+        .then(() => {
+            showStatus('outgoingLaneStatus', 'Applied', 'success');
+            if (raw !== 'null') loadTurnParams();
+        })
+        .catch(e => showStatus('outgoingLaneStatus', 'Error: ' + e, 'error'));
+}
+
 function loadOutgoingLane() {
     fetch('/outgoing_lane')
         .then(r => r.json())
         .then(data => {
             const lane = data.outgoing_lane === null ? 'null' : data.outgoing_lane;
             document.getElementById('outgoingLaneSelect').value = lane;
-            if (lane !== 'null') {
-                document.getElementById('turnDirSelect').value = lane;
-                loadTurnParams();
-            }
         });
 }
 
-function applyOutgoingLane() {
-    const raw = document.getElementById('outgoingLaneSelect').value;
-    const val = raw === 'null' ? null : raw;
-    postJSON('/outgoing_lane', { outgoing_lane: val })
-        .then(() => showStatus('outgoingLaneStatus', 'Applied', 'success'))
-        .catch(e  => showStatus('outgoingLaneStatus', 'Error: ' + e, 'error'));
-}
+
 
 document.getElementById('cmdValue').addEventListener('keydown', e => {
     if (e.key === 'Enter') sendCommand();
@@ -759,8 +746,9 @@ function buildTurnParamRows(dirCfg, isPid) {
 }
 
 function loadTurnParams() {
-    const dir = document.getElementById('turnDirSelect').value;
-    const endpoint = USE_P_TURN_AGENT ? '/turn_config_pid' : '/turn_config';
+    const dir = document.getElementById('outgoingLaneSelect').value;
+    if (dir === 'null') return;
+    const endpoint = USE_PID_TURN_AGENT ? '/turn_config_pid' : '/turn_config';
     fetch(endpoint)
         .then(r => r.json())
         .then(data => {
@@ -770,15 +758,15 @@ function loadTurnParams() {
                 showStatus('turnParamsStatus', 'Direction not in config', 'error');
                 return;
             }
-            buildTurnParamRows(dirCfg, USE_P_TURN_AGENT);
+            buildTurnParamRows(dirCfg, USE_PID_TURN_AGENT);
         })
         .catch(() => showStatus('turnParamsStatus', 'Failed to load', 'error'));
 }
 
 function applyTurnParams() {
-    const dir = document.getElementById('turnDirSelect').value;
-    const endpoint = USE_P_TURN_AGENT ? '/turn_config_pid' : '/turn_config';
-    const keys = USE_P_TURN_AGENT ? TURN_PID_KEYS : TURN_BASIC_KEYS;
+    const dir = document.getElementById('outgoingLaneSelect').value;
+    const endpoint = USE_PID_TURN_AGENT ? '/turn_config_pid' : '/turn_config';
+    const keys = USE_PID_TURN_AGENT ? TURN_PID_KEYS : TURN_BASIC_KEYS;
     const payload = { direction: dir };
     keys.forEach(p => {
         const el = document.getElementById('ta_num_' + p.key);
@@ -786,9 +774,9 @@ function applyTurnParams() {
     });
     postJSON(endpoint, payload)
         .then(r => {
-            showStatus('turnParamsStatus', 'Saved to YAML', 'success');
+            showStatus('turnParamsStatus', 'Applied', 'success');
             _turnConfigFull = r;
-            buildTurnParamRows(r[dir], USE_P_TURN_AGENT);
+            buildTurnParamRows(r[dir], USE_PID_TURN_AGENT);
         })
         .catch(e => showStatus('turnParamsStatus', 'Error: ' + e, 'error'));
 }
